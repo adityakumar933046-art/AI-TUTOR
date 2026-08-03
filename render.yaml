@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: eduverse-ai-kids
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn eduverse_project.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
