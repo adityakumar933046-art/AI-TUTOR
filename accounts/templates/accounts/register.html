@@ -1,0 +1,104 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Create Account - EduVerse AI Kids{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center align-items-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="glass-card p-4 p-md-5 border-0 shadow-lg">
+
+        <div class="text-center mb-4">
+          <div class="d-inline-flex p-3 rounded-circle bg-warning-subtle text-warning mb-2">
+            <i class="bi bi-rocket-takeoff fs-1 text-warning"></i>
+          </div>
+          <h2 class="fw-bold mb-1" style="color: var(--text-color);">Create Your Free Account</h2>
+          <p class="text-muted fs-7">Join EduVerse AI Kids today and start your smart learning journey!</p>
+        </div>
+
+        <form method="post" action="{% url 'register' %}">
+          {% csrf_token %}
+
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="reg-fullname" class="form-label fw-semibold fs-7">Full Name</label>
+              {{ form.full_name }}
+              {% if form.full_name.errors %}
+                <div class="text-danger fs-8 mt-1">{{ form.full_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label for="reg-username" class="form-label fw-semibold fs-7">Username</label>
+              {{ form.username }}
+              {% if form.username.errors %}
+                <div class="text-danger fs-8 mt-1">{{ form.username.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label for="reg-email" class="form-label fw-semibold fs-7">Email Address</label>
+              {{ form.email }}
+              {% if form.email.errors %}
+                <div class="text-danger fs-8 mt-1">{{ form.email.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-12">
+              <label for="reg-role" class="form-label fw-semibold fs-7">Select Role</label>
+              {{ form.role }}
+              {% if form.role.errors %}
+                <div class="text-danger fs-8 mt-1">{{ form.role.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label for="reg-password" class="form-label fw-semibold fs-7">Password</label>
+              {{ form.password }}
+              {% if form.password.errors %}
+                <div class="text-danger fs-8 mt-1">{{ form.password.errors.0 }}</div>
+              {% endif %}
+              <!-- Password Strength Meter -->
+              <div class="progress mt-2" style="height: 5px;">
+                <div id="password-strength-bar" class="progress-bar bg-danger" role="progressbar" style="width: 0%;"></div>
+              </div>
+              <span class="fs-9 text-muted d-block mt-1">Min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char.</span>
+            </div>
+
+            <div class="col-md-6">
+              <label for="reg-confirm-password" class="form-label fw-semibold fs-7">Confirm Password</label>
+              {{ form.confirm_password }}
+              {% if form.confirm_password.errors %}
+                <div class="text-danger fs-8 mt-1">{{ form.confirm_password.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-12">
+              <div class="form-check">
+                {{ form.terms }}
+                <label class="form-check-label fs-7 text-muted" for="id_terms">
+                  I agree to the <a href="#" class="text-primary text-decoration-none">Terms of Service</a> and <a href="#" class="text-primary text-decoration-none">Privacy Policy</a>
+                </label>
+                {% if form.terms.errors %}
+                  <div class="text-danger fs-8 mt-1">{{ form.terms.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-edu-primary w-100 py-2.5 fs-6 shadow mt-4">
+            Register Account <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </form>
+
+        <div class="text-center mt-4 pt-2 border-top">
+          <p class="text-muted fs-7 mb-0">
+            Already have an account? <a href="{% url 'login' %}" class="text-primary fw-bold text-decoration-none">Sign in here</a>
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

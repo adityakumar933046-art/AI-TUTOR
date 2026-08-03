@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduVerse AI Kids — AI Socratic Tutor Platform</title>
+    <meta name="description" content="Production-grade AI tutoring platform for children aged 4–12. Learn naturally with Socratic guidance, voice, stories, quizzes, and gamification.">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts (Outfit & Comic Neue) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg glass-nav fixed-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#" onclick="switchTab('landing')">
+                <div class="brand-icon pulse">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <span class="brand-title">EduVerse <span class="brand-highlight">AI Kids</span></span>
+            </a>
+
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <i class="fa-solid fa-bars-staggered color-primary fs-3"></i>
+            </button>
+
+            <!-- Nav Links -->
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav mx-auto nav-pills-custom">
+                    <li class="nav-item">
+                        <button class="nav-link" id="tab-landing" onclick="switchTab('landing')">
+                            <i class="fa-solid fa-house me-1"></i> Home
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link active" id="tab-learn" onclick="switchTab('learn')">
+                            <i class="fa-solid fa-compass me-1"></i> Socratic Tutor
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="tab-stories" onclick="switchTab('stories')">
+                            <i class="fa-solid fa-book-open-reader me-1"></i> Story Studio
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="tab-quiz" onclick="switchTab('quiz')">
+                            <i class="fa-solid fa-gamepad me-1"></i> Quiz Arena
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="tab-homework" onclick="switchTab('homework')">
+                            <i class="fa-solid fa-camera-retro me-1"></i> Homework OCR
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="tab-parent" onclick="switchTab('parent')">
+                            <i class="fa-solid fa-chart-pie me-1"></i> Parent Portal
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="tab-teacher" onclick="switchTab('teacher')">
+                            <i class="fa-solid fa-chalkboard-user me-1"></i> Teacher Hub
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="tab-admin" onclick="switchTab('admin')">
+                            <i class="fa-solid fa-shield-halved me-1"></i> Admin
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- User Stats, Auth & Provider Widget -->
+                <div class="d-flex align-items-center gap-3 mt-3 mt-lg-0">
+                    <!-- Gamification Bar -->
+                    <div class="gamify-bar d-flex align-items-center gap-2">
+                        <span class="badge bg-warning-custom text-dark rounded-pill px-3 py-2 fw-bold" id="stat-xp">
+                            <i class="fa-solid fa-star text-warning me-1"></i> 250 XP
+                        </span>
+                        <span class="badge bg-info-custom text-dark rounded-pill px-3 py-2 fw-bold" id="stat-coins">
+                            <i class="fa-solid fa-coins text-warning me-1"></i> 45 Coins
+                        </span>
+                        <span class="badge bg-danger-custom text-white rounded-pill px-3 py-2 fw-bold" id="stat-streak">
+                            <i class="fa-solid fa-fire text-danger me-1"></i> 3 Day Streak
+                        </span>
+                    </div>
+
+                    <!-- AI Provider Switcher -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-custom dropdown-toggle rounded-pill btn-sm px-3 fw-semibold" type="button" data-bs-toggle="dropdown" id="active-provider-btn">
+                            <i class="fa-solid fa-robot text-primary me-1"></i> Engine: <span id="current-provider-name">Gemini (Free)</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end glass-dropdown">
+                            <li><h6 class="dropdown-header">Select AI Engine Provider</h6></li>
+                            <li><a class="dropdown-item active" href="#" onclick="selectProvider('gemini')"><i class="fa-brands fa-google text-primary me-2"></i>Google Gemini (Default Dev)</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="selectProvider('groq')"><i class="fa-solid fa-bolt text-warning me-2"></i>Groq (High-Speed Free)</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="selectProvider('openrouter')"><i class="fa-solid fa-network-wired text-info me-2"></i>OpenRouter (Open Models)</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="selectProvider('ollama')"><i class="fa-solid fa-hard-drive text-secondary me-2"></i>Ollama (Local Offline)</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="selectProvider('openai')"><i class="fa-solid fa-microchip text-success me-2"></i>OpenAI GPT-5.5 (Production)</a></li>
+                        </ul>
+                    </div>
+
+                    <!-- Auth Button / User Profile Pill -->
+                    <div id="nav-user-area">
+                        <button class="btn btn-gradient-primary rounded-pill btn-sm px-3 fw-bold" onclick="openAuthModal()">
+                            <i class="fa-solid fa-user-lock me-1"></i> Login / Register
+                        </button>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <button class="btn btn-icon rounded-circle" id="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Floating AI Mascot Companion -->
+    <div class="mascot-container" id="mascot-widget" title="Click to talk with your AI Tutor Mascot!">
+        <div class="mascot-speech-bubble shadow-lg" id="mascot-speech">
+            Hi! I'm <strong>Sparky</strong>, your AI Learning Buddy! What are we discovering today? 🚀
+        </div>
+        <div class="mascot-avatar-wrapper" onclick="toggleVoiceModal()">
+            <div class="mascot-glow"></div>
+            <div class="mascot-avatar" id="mascot-avatar-icon">
+                🤖
+            </div>
+            <div class="mascot-status-indicator" id="mascot-status"></div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="container-fluid pt-5 mt-4 px-4 pb-5">
+
+        <!-- SECTION 0: SAAS LANDING PAGE -->
+        <section id="view-landing" class="app-view">
+            <div class="hero-section text-center py-5 position-relative overflow-hidden">
+                <div class="hero-bg-glow"></div>
+                <div class="container position-relative z-1 py-4">
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-4 py-2 fw-bold mb-3 border">
+                        🚀 Next-Generation Socratic AI Tutor for Kids Aged 4–12
+                    </span>
+                    <h1 class="display-3 fw-extrabold mb-3 text-gradient">
+                        Where Curiosity Meets <br><span class="color-primary">Human-like Socratic AI</span>
+                    </h1>
+                    <p class="lead text-muted max-w-700 mx-auto mb-4">
+                        EduVerse AI Kids guides children through Math, Science, Reading, and Space using guiding questions, step-by-step Socratic hints, real-time voice, stories, and gamification. Never giving away answers—always building critical thinkers.
+                    </p>
+
+                    <div class="d-flex justify-content-center gap-3 mb-5 flex-wrap">
+                        <button class="btn btn-gradient-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow-lg" onclick="switchTab('learn')">
+                            <i class="fa-solid fa-rocket me-2"></i> Start Free AI Tutoring
+                        </button>
+                        <button class="btn btn-outline-custom btn-lg rounded-pill px-4 py-3 fw-bold" onclick="openAuthModal()">
+                            <i class="fa-solid fa-user-plus me-2"></i> Create Parent Account
+                        </button>
+                    </div>
+
+                    <!-- Platform Feature Grid -->
+                    <div class="row g-4 mt-4">
+                        <div class="col-md-4">
+                            <div class="card glass-card p-4 h-100 text-start hover-lift">
+                                <div class="fs-1 color-math mb-3">🧮</div>
+                                <h5 class="fw-bold mb-2">Socratic AI Tutor</h5>
+                                <p class="text-muted fs-7 mb-0">Never reveals direct answers. Uses visual analogies and 3-stage hint ladders to build deep understanding.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card glass-card p-4 h-100 text-start hover-lift">
+                                <div class="fs-1 color-science mb-3">🎙️</div>
+                                <h5 class="fw-bold mb-2">Voice & Speech Coach</h5>
+                                <p class="text-muted fs-7 mb-0">Real-time audio speech-to-text and text-to-speech with emotion-aware voice responses.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card glass-card p-4 h-100 text-start hover-lift">
+                                <div class="fs-1 color-stories mb-3">📷</div>
+                                <h5 class="fw-bold mb-2">Homework OCR Scanner</h5>
+                                <p class="text-muted fs-7 mb-0">Snap a picture of any math or science worksheet to receive step-by-step hint guidance.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 1: LEARN & TUTOR TAB -->
+        <section id="view-learn" class="app-view active">
+            <div class="row g-4">
+                
+                <!-- Left Sidebar: Student Profile & Subject Selector -->
+                <div class="col-lg-3">
+                    <div class="card glass-card p-4 h-100">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <div class="avatar-circle bg-gradient-purple text-white fs-3 fw-bold">
+                                👦
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold" id="student-name">Alex Johnson</h5>
+                                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 mt-1" id="student-age-bracket">
+                                    Age 8 • Grade 3
+                                </span>
+                            </div>
+                        </div>
+
+                        <hr class="divider">
+
+                        <!-- Subject Selector -->
+                        <h6 class="text-uppercase text-muted fw-bold fs-7 mb-3 me-auto">Choose Subject</h6>
+                        <div class="d-grid gap-2 mb-4" id="subject-selector-buttons">
+                            <button class="btn btn-subject active" onclick="setSubject('math')">
+                                <i class="fa-solid fa-calculator me-2 color-math"></i> Mathematics
+                            </button>
+                            <button class="btn btn-subject" onclick="setSubject('science')">
+                                <i class="fa-solid fa-flask me-2 color-science"></i> Science & Nature
+                            </button>
+                            <button class="btn btn-subject" onclick="setSubject('english')">
+                                <i class="fa-solid fa-spell-check me-2 color-english"></i> English & Grammar
+                            </button>
+                            <button class="btn btn-subject" onclick="setSubject('reading')">
+                                <i class="fa-solid fa-book me-2 color-reading"></i> Reading & Phonics
+                            </button>
+                            <button class="btn btn-subject" onclick="setSubject('space')">
+                                <i class="fa-solid fa-rocket me-2 color-space"></i> Space & Universe
+                            </button>
+                        </div>
+
+                        <hr class="divider">
+
+                        <!-- Active Agent Card -->
+                        <div class="agent-info-card p-3 rounded-4 bg-light-custom border">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fs-4" id="active-agent-icon">🧮</span>
+                                <h6 class="mb-0 fw-bold" id="active-agent-name">Math Socratic Agent</h6>
+                            </div>
+                            <p class="fs-7 text-muted mb-0" id="active-agent-desc">
+                                Specialized in visual math steps, Socratic hints, and non-answer problem solving.
+                            </p>
+                        </div>
+
+                        <div class="mt-auto pt-3 text-center">
+                            <button class="btn btn-gradient-primary rounded-pill w-100 py-2 fw-bold shadow-sm" onclick="toggleVoiceModal()">
+                                <i class="fa-solid fa-microphone me-2"></i> Start Voice Chat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center: Socratic Interactive Chat Window -->
+                <div class="col-lg-6">
+                    <div class="card glass-card d-flex flex-column h-100 chat-card">
+                        
+                        <!-- Chat Header -->
+                        <div class="card-header bg-transparent border-bottom p-3 d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="pulse-dot"></div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold" id="chat-header-subject">Mathematics Socratic Session</h6>
+                                    <span class="fs-7 text-muted">21-Stage AI Pipeline Active • Non-Direct Answer Policy</span>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="clearChatHistory()" title="Clear Chat">
+                                    <i class="fa-solid fa-rotate-right me-1"></i> Reset Session
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Chat Messages Window -->
+                        <div class="card-body chat-messages-container p-4 overflow-y-auto" id="chat-messages">
+                            <!-- Initial Greeting -->
+                            <div class="chat-bubble ai-bubble d-flex gap-3 mb-4">
+                                <div class="chat-avatar">🤖</div>
+                                <div class="chat-content">
+                                    <div class="chat-sender">Sparky (Math Agent)</div>
+                                    <div class="chat-text">
+                                        Hello Alex! 👋 Ready for some math fun today? 
+                                        What question would you like to explore together? 
+                                        <br><br>
+                                        <em>Remember: I won't just give you the answer—I'll help you figure it out step by step!</em>
+                                    </div>
+                                    <div class="chat-time mt-1">Just now</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Socratic Hint Ladder Indicator -->
+                        <div class="hint-ladder-bar px-4 py-2 bg-light-custom border-top border-bottom fs-7 text-muted d-flex align-items-center justify-content-between" id="hint-ladder">
+                            <span><i class="fa-solid fa-lightbulb text-warning me-1"></i> Socratic Hint Level: <strong id="hint-level-text">Level 1 (Concept Explanation)</strong></span>
+                            <span class="badge bg-secondary-subtle text-secondary" id="confidence-badge">Learner Confidence: 65%</span>
+                        </div>
+
+                        <!-- Chat Input Box -->
+                        <div class="card-footer bg-transparent border-0 p-3">
+                            <form id="chat-form" onsubmit="handleChatSubmit(event)" class="d-flex gap-2">
+                                <button type="button" class="btn btn-icon btn-light rounded-circle shadow-sm" onclick="toggleVoiceModal()" title="Voice Input">
+                                    <i class="fa-solid fa-microphone text-primary"></i>
+                                </button>
+                                <input type="text" class="form-control rounded-pill px-4 glass-input" id="chat-input" placeholder="Ask a question or explain your thinking..." autocomplete="off">
+                                <button type="submit" class="btn btn-gradient-primary rounded-circle btn-icon shadow-sm" id="chat-send-btn">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar: Learning Map & Weak Concepts -->
+                <div class="col-lg-3">
+                    <div class="card glass-card p-4 h-100">
+                        <h6 class="fw-bold mb-3"><i class="fa-solid fa-map-location-dot text-primary me-2"></i> Learning Journey Map</h6>
+                        
+                        <!-- Skill Progress Rings -->
+                        <div class="skill-progress-item mb-3">
+                            <div class="d-flex justify-content-between fs-7 mb-1">
+                                <span class="fw-semibold">Multiplication & Tables</span>
+                                <span class="text-primary fw-bold">75% Mastery</span>
+                            </div>
+                            <div class="progress progress-custom">
+                                <div class="progress-bar bg-gradient-purple" style="width: 75%"></div>
+                            </div>
+                        </div>
+
+                        <div class="skill-progress-item mb-3">
+                            <div class="d-flex justify-content-between fs-7 mb-1">
+                                <span class="fw-semibold">Fractions & Decimals</span>
+                                <span class="text-warning fw-bold">45% Mastery</span>
+                            </div>
+                            <div class="progress progress-custom">
+                                <div class="progress-bar bg-gradient-orange" style="width: 45%"></div>
+                            </div>
+                        </div>
+
+                        <div class="skill-progress-item mb-4">
+                            <div class="d-flex justify-content-between fs-7 mb-1">
+                                <span class="fw-semibold">Solar System & Planets</span>
+                                <span class="text-success fw-bold">90% Mastery</span>
+                            </div>
+                            <div class="progress progress-custom">
+                                <div class="progress-bar bg-gradient-green" style="width: 90%"></div>
+                            </div>
+                        </div>
+
+                        <hr class="divider">
+
+                        <!-- Weak Concepts Revision Queue -->
+                        <h6 class="fw-bold mb-3"><i class="fa-solid fa-arrows-rotate text-danger me-2"></i> Revision Queue</h6>
+                        <div class="list-group list-group-flush gap-2 mb-4" id="revision-queue-list">
+                            <div class="list-group-item bg-light-custom rounded-3 p-2 border-0 d-flex align-items-center justify-content-between">
+                                <span class="fs-7"><i class="fa-solid fa-circle-exclamation text-warning me-1"></i> 7x Table Double Check</span>
+                                <button class="btn btn-sm btn-outline-primary py-0 px-2 fs-8 rounded-pill" onclick="quickPractice('7x Table')">Practice</button>
+                            </div>
+                            <div class="list-group-item bg-light-custom rounded-3 p-2 border-0 d-flex align-items-center justify-content-between">
+                                <span class="fs-7"><i class="fa-solid fa-circle-exclamation text-warning me-1"></i> Fraction Addition</span>
+                                <button class="btn btn-sm btn-outline-primary py-0 px-2 fs-8 rounded-pill" onclick="quickPractice('Fractions')">Practice</button>
+                            </div>
+                        </div>
+
+                        <hr class="divider">
+
+                        <!-- Unlocked Badges Showcase -->
+                        <h6 class="fw-bold mb-3"><i class="fa-solid fa-trophy text-warning me-2"></i> Recent Badges</h6>
+                        <div class="d-flex gap-2 justify-content-center" id="badges-showcase">
+                            <div class="badge-item text-center p-2 rounded-3 bg-light-custom border" title="Master of Math">
+                                <div class="fs-3">🏆</div>
+                                <div class="fs-8 fw-bold">Math Wizard</div>
+                            </div>
+                            <div class="badge-item text-center p-2 rounded-3 bg-light-custom border" title="3 Day Streak">
+                                <div class="fs-3">🔥</div>
+                                <div class="fs-8 fw-bold">On Fire</div>
+                            </div>
+                            <div class="badge-item text-center p-2 rounded-3 bg-light-custom border" title="Space Explorer">
+                                <div class="fs-3">🚀</div>
+                                <div class="fs-8 fw-bold">Star Voyager</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 2: STORY STUDIO TAB -->
+        <section id="view-stories" class="app-view">
+            <div class="card glass-card p-4 mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h3 class="fw-bold"><i class="fa-solid fa-book-open-reader color-stories me-2"></i> AI Interactive Story Studio</h3>
+                        <p class="text-muted mb-0">Generate fun, educational stories tuned to your age and favorite themes. Learn vocabulary, morals, and science while reading!</p>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                        <button class="btn btn-gradient-primary rounded-pill px-4 py-2 fw-bold" onclick="generateNewStory()">
+                            <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Create New Story
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Story Setup & Display -->
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card glass-card p-4">
+                        <h5 class="fw-bold mb-3">Story Theme</h5>
+                        <div class="d-grid gap-2 mb-4" id="story-theme-buttons">
+                            <button class="btn btn-theme active" onclick="selectStoryTheme('space')">🚀 Cosmic Space Journey</button>
+                            <button class="btn btn-theme" onclick="selectStoryTheme('dinosaurs')">🦖 Dinosaur Time Machine</button>
+                            <button class="btn btn-theme" onclick="selectStoryTheme('ocean')">🌊 Deep Ocean Mystery</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card glass-card p-4" id="story-display-card">
+                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+                            <h4 class="fw-bold mb-0" id="story-title">The Secret of Planet Lumina</h4>
+                            <div>
+                                <button class="btn btn-outline-primary btn-sm rounded-pill me-2" onclick="readStoryAloud()"><i class="fa-solid fa-volume-high me-1"></i> Listen</button>
+                                <span class="badge bg-info-subtle text-info rounded-pill px-3 py-2" id="story-vocabulary-count">5 Vocab Words</span>
+                            </div>
+                        </div>
+
+                        <div class="story-content-body fs-5 lead mb-4" id="story-body-text">
+                            Once upon a time in the year 2085, young astronaut Alex launched a shiny rocket toward Planet Lumina. Lumina was famous because its rings were made entirely of glowing mathematical crystals! But to navigate through the asteroid belt, Alex had to solve a cosmic puzzle...
+                        </div>
+
+                        <div class="story-quiz-box p-3 rounded-4 bg-light-custom border">
+                            <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-circle-question me-2"></i> Story Comprehension Question</h6>
+                            <p class="mb-3 fs-6" id="story-question">What were the rings of Planet Lumina made of?</p>
+                            <div class="d-flex gap-2 flex-wrap" id="story-options">
+                                <button class="btn btn-outline-custom rounded-pill px-3" onclick="checkStoryAnswer(true)">Glowing Mathematical Crystals</button>
+                                <button class="btn btn-outline-custom rounded-pill px-3" onclick="checkStoryAnswer(false)">Space Cheese</button>
+                                <button class="btn btn-outline-custom rounded-pill px-3" onclick="checkStoryAnswer(false)">Frozen Water</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: QUIZ ARENA TAB -->
+        <section id="view-quiz" class="app-view">
+            <div class="card glass-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="fw-bold"><i class="fa-solid fa-gamepad color-quiz me-2"></i> AI Dynamic Quiz Arena</h3>
+                        <p class="text-muted mb-0">Adaptive questions generated live based on your mastery profile.</p>
+                    </div>
+                    <div>
+                        <span class="badge bg-purple-custom text-white rounded-pill px-4 py-2 fs-6" id="quiz-score-tracker">Score: 0 / 500 XP</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Card -->
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card glass-card p-5 text-center" id="quiz-container-card">
+                        <div class="quiz-header d-flex justify-content-between mb-4">
+                            <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2" id="quiz-subject-tag">Subject: Science</span>
+                            <span class="badge bg-warning-subtle text-warning rounded-pill px-3 py-2" id="quiz-timer">⏱️ 30s</span>
+                        </div>
+
+                        <h3 class="quiz-question fw-bold mb-4" id="quiz-question-text">
+                            Which planet is known as the "Red Planet" in our Solar System?
+                        </h3>
+
+                        <div class="row g-3 justify-content-center mb-4" id="quiz-options-container">
+                            <div class="col-md-6"><button class="btn btn-quiz-option w-100 py-3 rounded-4 fw-bold" onclick="selectQuizAnswer(this, false)">A) Venus</button></div>
+                            <div class="col-md-6"><button class="btn btn-quiz-option w-100 py-3 rounded-4 fw-bold" onclick="selectQuizAnswer(this, true)">B) Mars</button></div>
+                            <div class="col-md-6"><button class="btn btn-quiz-option w-100 py-3 rounded-4 fw-bold" onclick="selectQuizAnswer(this, false)">C) Jupiter</button></div>
+                            <div class="col-md-6"><button class="btn btn-quiz-option w-100 py-3 rounded-4 fw-bold" onclick="selectQuizAnswer(this, false)">D) Mercury</button></div>
+                        </div>
+
+                        <div class="quiz-feedback-box p-3 rounded-4 d-none" id="quiz-feedback"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: HOMEWORK SCANNER TAB -->
+        <section id="view-homework" class="app-view">
+            <div class="card glass-card p-4 mb-4">
+                <h3 class="fw-bold"><i class="fa-solid fa-camera-retro color-homework me-2"></i> AI Homework OCR & Socratic Scanner</h3>
+                <p class="text-muted mb-0">Snap a picture or upload an image of your worksheet. Sparky will read it and guide you step-by-step without giving direct answers!</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="card glass-card p-4 text-center">
+                        <div class="upload-zone border-dashed p-5 rounded-4 mb-3" onclick="triggerFileInput()">
+                            <i class="fa-solid fa-cloud-arrow-up fs-1 text-primary mb-3"></i>
+                            <h5 class="fw-bold">Upload Homework Worksheet</h5>
+                            <p class="text-muted fs-7">Supports PNG, JPG, or Snap Camera</p>
+                            <input type="file" id="homework-file-input" class="d-none" accept="image/*" onchange="handleImageUpload(event)">
+                        </div>
+                        <button class="btn btn-gradient-primary rounded-pill w-100 py-2 fw-bold" onclick="triggerFileInput()">
+                            <i class="fa-solid fa-camera me-2"></i> Choose File / Take Photo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="card glass-card p-4" id="ocr-results-card">
+                        <h5 class="fw-bold mb-3"><i class="fa-solid fa-magnifying-glass-chart text-success me-2"></i> OCR Analysis & Hint Steps</h5>
+                        <div class="alert alert-info rounded-4 d-none" id="ocr-extracted-box">
+                            <strong>Extracted Problem:</strong> <span id="ocr-text-result">Solve: 3x + 6 = 15</span>
+                        </div>
+                        <div class="socratic-steps-list" id="socratic-ocr-steps">
+                            <p class="text-muted">Upload a math or science problem on the left to generate Socratic guidance steps!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: PARENT DASHBOARD TAB -->
+        <section id="view-parent" class="app-view">
+            <div class="card glass-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="fw-bold"><i class="fa-solid fa-chart-pie text-primary me-2"></i> Parent Insights & Analytics Dashboard</h3>
+                        <p class="text-muted mb-0">Track Alex's study time, mastery growth, confidence, and AI recommendations.</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary rounded-pill px-3 py-2 fw-bold" onclick="exportParentReport()">
+                            <i class="fa-solid fa-file-pdf me-2"></i> Export Report PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card glass-card p-4 text-center">
+                        <div class="fs-1 text-primary fw-bold">4.2 hrs</div>
+                        <div class="text-muted fs-7">Study Time This Week</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card glass-card p-4 text-center">
+                        <div class="fs-1 text-success fw-bold">82%</div>
+                        <div class="text-muted fs-7">Average Mastery Score</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card glass-card p-4 text-center">
+                        <div class="fs-1 text-warning fw-bold">14</div>
+                        <div class="text-muted fs-7">Quizzes Completed</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card glass-card p-4 text-center">
+                        <div class="fs-1 text-danger fw-bold">3 Days</div>
+                        <div class="text-muted fs-7">Active Learning Streak</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card glass-card p-4">
+                        <h5 class="fw-bold mb-3">Weekly Subject Mastery Progress</h5>
+                        <canvas id="parent-chart-mastery" height="220"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card glass-card p-4">
+                        <h5 class="fw-bold mb-3">AI Parent Recommendations</h5>
+                        <div class="list-group list-group-flush gap-3" id="parent-recommendations-list">
+                            <div class="p-3 bg-light-custom rounded-4">
+                                <h6 class="fw-bold text-primary mb-1">🌟 Strong Topic: Solar System</h6>
+                                <p class="fs-7 text-muted mb-0">Alex scored 90% in Space science. Encourage them with planetary stories!</p>
+                            </div>
+                            <div class="p-3 bg-light-custom rounded-4">
+                                <h6 class="fw-bold text-warning mb-1">💡 Focus Area: 7x Multiplication Table</h6>
+                                <p class="fs-7 text-muted mb-0">Sparky noticed Alex hesitated on 7x table questions. Socratic revision scheduled.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: TEACHER HUB TAB -->
+        <section id="view-teacher" class="app-view">
+            <div class="card glass-card p-4 mb-4">
+                <h3 class="fw-bold"><i class="fa-solid fa-chalkboard-user text-purple me-2"></i> Teacher Classroom Hub</h3>
+                <p class="text-muted mb-0">Manage student assignments, generate AI worksheets, and inspect class performance.</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card glass-card p-4">
+                        <h5 class="fw-bold mb-3"><i class="fa-solid fa-wand-magic me-2 text-primary"></i> AI Worksheet Generator</h5>
+                        <form onsubmit="generateWorksheet(event)">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Select Topic</label>
+                                <select class="form-select rounded-pill glass-input" id="ws-topic">
+                                    <option value="Multiplication">Multiplication & Division (Grade 3)</option>
+                                    <option value="Fractions">Basic Fractions & Shapes</option>
+                                    <option value="Solar System">Planets & Astronomy</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Number of Questions</label>
+                                <input type="number" class="form-control rounded-pill glass-input" value="5" min="1" max="10" id="ws-count">
+                            </div>
+                            <button type="submit" class="btn btn-gradient-primary rounded-pill px-4 fw-bold">Generate Printable Worksheet</button>
+                        </form>
+
+                        <div class="mt-4 p-3 bg-light-custom rounded-4 d-none" id="worksheet-preview-box">
+                            <h6 class="fw-bold mb-2 text-success">Generated Worksheet Preview:</h6>
+                            <pre id="worksheet-text-content" class="fs-7 bg-white p-3 rounded border"></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card glass-card p-4">
+                        <h5 class="fw-bold mb-3">Class Roster & Performance</h5>
+                        <div class="table-responsive">
+                            <table class="table align-middle fs-7">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Grade</th>
+                                        <th>Mastery</th>
+                                        <th>Streak</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teacher-roster-body">
+                                    <tr>
+                                        <td>👦 Alex Johnson</td>
+                                        <td>Grade 3</td>
+                                        <td><span class="badge bg-success">82%</span></td>
+                                        <td>🔥 3 Days</td>
+                                    </tr>
+                                    <tr>
+                                        <td>👧 Emma Watson</td>
+                                        <td>Grade 3</td>
+                                        <td><span class="badge bg-success">91%</span></td>
+                                        <td>🔥 7 Days</td>
+                                    </tr>
+                                    <tr>
+                                        <td>👦 Liam Smith</td>
+                                        <td>Grade 3</td>
+                                        <td><span class="badge bg-warning text-dark">68%</span></td>
+                                        <td>🔥 1 Day</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: ADMIN PORTAL TAB -->
+        <section id="view-admin" class="app-view">
+            <div class="card glass-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="fw-bold"><i class="fa-solid fa-shield-halved text-danger me-2"></i> System Security & Admin Portal</h3>
+                        <p class="text-muted mb-0">Monitor server health, AI orchestrator status, user roles, and security audit logs.</p>
+                    </div>
+                    <span class="badge bg-success rounded-pill px-4 py-2 fs-6">System Health: 100% Operational</span>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card glass-card p-4 text-center">
+                        <h6 class="fw-bold text-muted mb-2">Active Database Engine</h6>
+                        <div class="fs-4 fw-bold text-primary">SQLite / PostgreSQL</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card glass-card p-4 text-center">
+                        <h6 class="fw-bold text-muted mb-2">AI Provider Pipeline</h6>
+                        <div class="fs-4 fw-bold text-success">Google Gemini + Multi-Fallback</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card glass-card p-4 text-center">
+                        <h6 class="fw-bold text-muted mb-2">Security Enforcement</h6>
+                        <div class="fs-4 fw-bold text-info">JWT + RBAC + Rate Limit</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card glass-card p-4 mt-4">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-check me-2 text-primary"></i> Pre-Seeded System User Accounts</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle fs-7">
+                        <thead>
+                            <tr>
+                                <th>Role</th>
+                                <th>Demo Email</th>
+                                <th>Demo Password</th>
+                                <th>Access Rights</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge bg-primary">Student</span></td>
+                                <td><code>student@eduverse.ai</code></td>
+                                <td><code>student123</code></td>
+                                <td>Socratic Tutor, Voice, Stories, Quiz, Gamification</td>
+                                <td><button class="btn btn-sm btn-outline-primary rounded-pill" onclick="quickLogin('student@eduverse.ai', 'student123')">Quick Login</button></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-success">Parent</span></td>
+                                <td><code>parent@eduverse.ai</code></td>
+                                <td><code>parent123</code></td>
+                                <td>Parent Analytics, Weekly Reports, Screen Time Controls</td>
+                                <td><button class="btn btn-sm btn-outline-success rounded-pill" onclick="quickLogin('parent@eduverse.ai', 'parent123')">Quick Login</button></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">Teacher</span></td>
+                                <td><code>teacher@eduverse.ai</code></td>
+                                <td><code>teacher123</code></td>
+                                <td>Class Roster, AI Worksheet Generator</td>
+                                <td><button class="btn btn-sm btn-outline-warning rounded-pill" onclick="quickLogin('teacher@eduverse.ai', 'teacher123')">Quick Login</button></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-danger">Admin</span></td>
+                                <td><code>admin@eduverse.ai</code></td>
+                                <td><code>admin123</code></td>
+                                <td>System Health, Audit Logs, Security Controls</td>
+                                <td><button class="btn btn-sm btn-outline-danger rounded-pill" onclick="quickLogin('admin@eduverse.ai', 'admin123')">Quick Login</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Authentication Modal (Login / Signup) -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-0 rounded-5 p-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-primary" id="authModalTitle">
+                        <i class="fa-solid fa-user-lock me-2"></i> Account Sign In
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <ul class="nav nav-pills nav-justified mb-3 rounded-pill bg-light p-1" id="authTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active rounded-pill fw-bold" id="tab-auth-login" onclick="switchAuthTab('login')">Sign In</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link rounded-pill fw-bold" id="tab-auth-register" onclick="switchAuthTab('register')">Register</button>
+                        </li>
+                    </ul>
+
+                    <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+                        <div class="mb-3 d-none" id="auth-name-group">
+                            <label class="form-label fw-bold fs-7">Full Name</label>
+                            <input type="text" class="form-control rounded-pill glass-input" id="auth-name" placeholder="Alex Johnson">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold fs-7">Email Address</label>
+                            <input type="email" class="form-control rounded-pill glass-input" id="auth-email" placeholder="student@eduverse.ai" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold fs-7">Password</label>
+                            <input type="password" class="form-control rounded-pill glass-input" id="auth-password" placeholder="••••••••" required>
+                        </div>
+
+                        <div class="mb-3 d-none" id="auth-role-group">
+                            <label class="form-label fw-bold fs-7">Account Role</label>
+                            <select class="form-select rounded-pill glass-input" id="auth-role">
+                                <option value="Student">Student (Aged 4-12)</option>
+                                <option value="Parent">Parent</option>
+                                <option value="Teacher">Teacher</option>
+                                <option value="Admin">System Admin</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-gradient-primary rounded-pill w-100 py-2 fw-bold shadow-sm" id="auth-submit-btn">
+                            Sign In to EduVerse
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-Time Voice Conversation Modal -->
+    <div class="modal fade" id="voiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-0 rounded-5 p-4 text-center">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold mx-auto text-primary">
+                        <i class="fa-solid fa-microphone me-2"></i> Voice Tutor Session
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <!-- Animated Audio Waveform -->
+                    <div class="voice-wave-container mx-auto mb-4" id="voice-wave-box">
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                    </div>
+
+                    <h4 class="fw-bold mb-2" id="voice-status-text">Listening to you...</h4>
+                    <p class="text-muted fs-7 mb-4" id="voice-transcript-text">Speak naturally! Sparky will reply with voice & Socratic hints.</p>
+
+                    <div class="d-flex justify-content-center gap-3">
+                        <button class="btn btn-danger rounded-circle p-3 btn-icon shadow" onclick="stopVoiceSession()" title="Stop Listening">
+                            <i class="fa-solid fa-microphone-slash fs-4"></i>
+                        </button>
+                        <button class="btn btn-success rounded-circle p-3 btn-icon shadow" onclick="startVoiceSession()" title="Start Listening">
+                            <i class="fa-solid fa-microphone fs-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/bootstrap.bundle.min.js"></script>
+    <!-- Custom Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>

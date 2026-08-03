@@ -1,0 +1,368 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ active_game.title }} - AI Game Center{% endblock %}
+
+{% block extra_head %}
+<style>
+  .game-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.75rem;
+  }
+
+  .interactive-game-card {
+    border: 2px solid var(--card-border);
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--card-bg);
+  }
+
+  .interactive-game-card:hover {
+    transform: translateY(-3px);
+    border-color: #ec4899;
+    box-shadow: 0 10px 25px -5px rgba(236, 72, 153, 0.3);
+  }
+
+  .interactive-game-card.selected {
+    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+    color: white !important;
+    border-color: transparent;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #f43f5e;
+    top: 0;
+    opacity: 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- TOP GAME CENTER HERO & STATS HEADER -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 bg-gradient-pink p-3 rounded-4 shadow text-white" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center fw-bold shadow" style="width:52px; height:52px; font-size:1.6rem;">
+        🎮
+      </div>
+      <div>
+        <h3 class="fw-bold mb-0">AI Game Center & Arcade</h3>
+        <p class="mb-0 fs-8 opacity-90">Transform learning into interactive games powered by Gemini AI!</p>
+      </div>
+    </div>
+
+    <!-- Student Stats Badges -->
+    <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
+      <div class="bg-white bg-opacity-20 px-3 py-2 rounded-pill text-center">
+        <span class="fw-bold fs-6">🪙 {{ reward_profile.coins_balance }}</span>
+        <small class="d-block fs-9 opacity-90">Coins</small>
+      </div>
+      <div class="bg-white bg-opacity-20 px-3 py-2 rounded-pill text-center">
+        <span class="fw-bold fs-6">⚡ {{ reward_profile.total_xp }}</span>
+        <small class="d-block fs-9 opacity-90">Total XP</small>
+      </div>
+      <div class="bg-white bg-opacity-20 px-3 py-2 rounded-pill text-center">
+        <span class="fw-bold fs-6">🔥 {{ reward_profile.daily_streak }} Days</span>
+        <small class="d-block fs-9 opacity-90">Streak</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN: AI GAME PLAYABLE CANVAS & GENERATOR -->
+    <div class="col-lg-8">
+      
+      <!-- AI Game Generator Form Trigger Card -->
+      <div class="game-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-magic text-danger me-2"></i> AI Game Generator</h5>
+        
+        <form id="game-gen-form" onsubmit="generateAIGame(event)" class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fs-8 fw-semibold text-muted">Subject</label>
+            <select id="gen-subject" class="form-select rounded-pill fs-8">
+              <option value="Math">Math 🔢</option>
+              <option value="Science">Science 🔬</option>
+              <option value="English">English 📖</option>
+              <option value="History">History 🏛️</option>
+              <option value="Coding">Coding 💻</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fs-8 fw-semibold text-muted">Topic / Concept</label>
+            <input type="text" id="gen-topic" class="form-class form-control rounded-pill fs-8" placeholder="e.g. Fractions, Solar System" value="{{ active_game.title }}" required>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fs-8 fw-semibold text-muted">Game Type</label>
+            <select id="gen-type" class="form-select rounded-pill fs-8">
+              <option value="match_pair">Match Pair 🃏</option>
+              <option value="memory_cards">Memory Cards 🧠</option>
+              <option value="interactive_quiz">Interactive Quiz ⚡</option>
+            </select>
+          </div>
+
+          <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-danger w-100 rounded-pill fw-bold fs-8 shadow">
+              Generate 🚀
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PLAYABLE GAME CANVAS ENGINE -->
+      <div class="game-card p-4 mb-4" id="game-canvas-card">
+        <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+          <div>
+            <h4 class="fw-bold mb-0" id="game-title">{{ active_game.title }}</h4>
+            <span class="badge bg-primary rounded-pill fs-8">{{ active_game.subject }}</span>
+            <span class="badge bg-danger rounded-pill fs-8 ms-1">{{ active_game.game_type }}</span>
+          </div>
+
+          <div class="d-flex align-items-center gap-3">
+            <div class="text-center">
+              <div class="fw-bold fs-5 text-success" id="game-score">0</div>
+              <span class="fs-9 text-muted">Score</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playable Items Container -->
+        <div id="game-board-container" class="row g-3 py-2">
+          <!-- Populated dynamically by JavaScript -->
+        </div>
+
+        <!-- Submit & Reward Claim Button -->
+        <div class="text-center pt-4 border-top mt-4">
+          <button id="submit-game-btn" class="btn btn-success btn-lg rounded-pill fw-bold shadow px-5" onclick="submitGamePerformance()">
+            <i class="bi bi-trophy-fill me-2"></i> Submit & Claim Rewards
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: MISSIONS, STORE & LEADERBOARD -->
+    <div class="col-lg-4">
+      
+      <!-- Daily Missions Card -->
+      <div class="game-card p-4 mb-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-flag-fill text-warning me-2"></i> Daily Missions</h6>
+        <div class="list-group list-group-flush">
+          {% for m in missions %}
+            <div class="list-group-item bg-transparent border-0 rounded-3 p-2 mb-2 glass-card">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="fw-bold fs-7">{{ m.title }}</span>
+                <span class="badge bg-warning-subtle text-warning rounded-pill fs-9">+{{ m.xp_reward }} XP</span>
+              </div>
+              <p class="fs-9 text-muted mb-2">{{ m.description }}</p>
+              <div class="progress rounded-pill" style="height:6px;">
+                <div class="progress-bar bg-warning rounded-pill" style="width: {% if m.is_completed %}100{% else %}50{% endif %}%;"></div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Avatar & Pet Store Gallery Card -->
+      <div class="game-card p-4 mb-4 text-center">
+        <h6 class="fw-bold mb-2"><i class="bi bi-shop text-primary me-2"></i> Avatar & Pet Store</h6>
+        <p class="text-muted fs-8 mb-3">Unlock cool avatars with earned coins!</p>
+        
+        <div class="row g-2 mb-3">
+          <div class="col-4">
+            <div class="p-2 border rounded-3 text-center glass-card">
+              <div class="fs-2">🤖</div>
+              <small class="d-block fw-bold fs-9">Robot</small>
+              <button class="btn btn-sm btn-outline-success rounded-pill mt-1 py-0 fs-9" onclick="buyStoreItem('sparky_robot', 100)">100 🪙</button>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 border rounded-3 text-center glass-card">
+              <div class="fs-2">🦊</div>
+              <small class="d-block fw-bold fs-9">Fox Pet</small>
+              <button class="btn btn-sm btn-outline-success rounded-pill mt-1 py-0 fs-9" onclick="buyStoreItem('fox_pet', 150)">150 🪙</button>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 border rounded-3 text-center glass-card">
+              <div class="fs-2">🚀</div>
+              <small class="d-block fw-bold fs-9">Rocket</small>
+              <button class="btn btn-sm btn-outline-success rounded-pill mt-1 py-0 fs-9" onclick="buyStoreItem('rocket_ship', 200)">200 🪙</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leaderboard Card -->
+      <div class="game-card p-4 mb-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line-fill text-danger me-2"></i> Weekly XP Leaderboard</h6>
+        <div class="list-group list-group-flush">
+          {% for entry in leaderboard %}
+            <div class="list-group-item bg-transparent border-0 rounded-3 p-2 mb-1 d-flex align-items-center justify-content-between glass-card">
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-danger rounded-circle">#{{ entry.rank }}</span>
+                <span class="fw-bold fs-7">{{ entry.username }}</span>
+              </div>
+              <span class="fw-bold text-success fs-8">{{ entry.total_xp }} XP</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Multi-Modal Integration Toolbar -->
+      <div class="game-card p-4 text-center">
+        <h6 class="fw-bold mb-3">Multi-Modal Learning Shortcuts</h6>
+        <div class="d-grid gap-2">
+          <a href="{% url 'voice_tutor' %}" class="btn btn-danger py-2 fs-7 rounded-pill"><i class="bi bi-mic me-1"></i> Voice Tutor</a>
+          <a href="{% url 'chat_tutor' %}" class="btn btn-edu-primary py-2 fs-7"><i class="bi bi-chat-left-text me-1"></i> Chat AI</a>
+          <a href="{% url 'whiteboard' %}" class="btn btn-warning text-dark py-2 fs-7 rounded-pill"><i class="bi bi-easel me-1"></i> Whiteboard</a>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const gameId = {{ active_game.id }};
+  const rawItems = `{{ active_game.config_json|escapejs }}`;
+  let gameItems = [];
+  let currentScore = 0;
+  let selectedCard = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      gameItems = JSON.parse(rawItems);
+    } catch(e) {
+      gameItems = [];
+    }
+    renderGameBoard();
+  });
+
+  function renderGameBoard() {
+    const container = document.getElementById('game-board-container');
+    container.innerHTML = "";
+
+    if (!gameItems || gameItems.length === 0) {
+      container.innerHTML = `<div class="text-muted text-center py-4">No game items available. Try generating a new game!</div>`;
+      return;
+    }
+
+    const type = "{{ active_game.game_type }}";
+
+    if (type === 'match_pair' || type === 'memory_cards') {
+      // Create left and right cards
+      gameItems.forEach((item, idx) => {
+        container.innerHTML += `
+          <div class="col-md-6">
+            <div class="interactive-game-card shadow-sm" onclick="selectMatchCard(this, '${item.right}')">
+              <span class="badge bg-primary-subtle text-primary rounded-pill mb-2">Item ${idx + 1}</span>
+              <h5 class="fw-bold mb-0">${item.left}</h5>
+            </div>
+          </div>
+        `;
+      });
+    } else {
+      // Interactive Quiz
+      gameItems.forEach((q, idx) => {
+        let optsHtml = "";
+        if (q.options) {
+          q.options.forEach((opt, oIdx) => {
+            optsHtml += `<button class="btn btn-outline-primary btn-sm rounded-pill me-2 mb-2" onclick="answerQuiz(${oIdx}, ${q.correct_index})">${opt}</button>`;
+          });
+        }
+        container.innerHTML += `
+          <div class="col-12 mb-3 p-3 border rounded-3 glass-card">
+            <h6 class="fw-bold mb-2">Q${idx + 1}: ${q.question || 'Question'}</h6>
+            <div>${optsHtml}</div>
+          </div>
+        `;
+      });
+    }
+  }
+
+  function selectMatchCard(el, val) {
+    if (selectedCard) {
+      selectedCard.classList.remove('selected');
+    }
+    selectedCard = el;
+    selectedCard.classList.add('selected');
+    currentScore += 20;
+    document.getElementById('game-score').innerText = currentScore;
+  }
+
+  function answerQuiz(optIdx, correctIdx) {
+    if (optIdx === correctIdx) {
+      currentScore += 33;
+      document.getElementById('game-score').innerText = currentScore;
+      alert("Correct! +33 Points 🌟");
+    } else {
+      alert("Try again! 💡");
+    }
+  }
+
+  async function generateAIGame(e) {
+    e.preventDefault();
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const subject = document.getElementById('gen-subject').value;
+    const topic = document.getElementById('gen-topic').value;
+    const type = document.getElementById('gen-type').value;
+
+    const res = await fetch('/tutor/game/generate/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ subject: subject, topic: topic, game_type: type })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      window.location.href = data.redirect_url;
+    }
+  }
+
+  async function submitGamePerformance() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const res = await fetch(`/tutor/game/${gameId}/submit/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ score: currentScore, max_score: 100 })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert(`Game Completed! 🎉\nAccuracy: ${data.result.accuracy}%\nXP Earned: +${data.result.xp}\nCoins Earned: +${data.result.coins}`);
+      window.location.reload();
+    }
+  }
+
+  async function buyStoreItem(itemId, cost) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const res = await fetch('/tutor/game/store/buy/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ item_id: itemId, item_cost: cost })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert("Item purchased successfully! 🎁");
+      window.location.reload();
+    } else {
+      alert(data.error);
+    }
+  }
+</script>
+{% endblock %}

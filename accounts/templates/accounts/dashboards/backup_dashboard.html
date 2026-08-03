@@ -1,0 +1,209 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Backup & Disaster Recovery Center - EduVerse AI Kids{% endblock %}
+
+{% block extra_head %}
+<style>
+  .backup-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- HERO BANNER -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-4 rounded-4 shadow text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-white text-info d-flex align-items-center justify-content-center fw-bold shadow" style="width:56px; height:56px; font-size:1.8rem;">
+        💾
+      </div>
+      <div>
+        <h3 class="fw-bold mb-0">Backup, Restore & Disaster Recovery Center</h3>
+        <p class="mb-0 fs-8 opacity-90">Protect platform data against loss. Generate full or component archives with SHA256 checksum validation & pre-restore safety snapshots.</p>
+      </div>
+    </div>
+    <a href="{% url 'admin_hub' %}" class="btn btn-light shadow px-3 fw-semibold rounded-pill">
+      <i class="bi bi-shield-lock me-1"></i> Admin Dashboard
+    </a>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- TOP SECTION: MANUAL BACKUP TRIGGER WIZARD -->
+    <div class="col-12">
+      <div class="backup-card p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-cloud-arrow-up-fill text-primary me-2"></i> Trigger Manual System Backup</h5>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <button onclick="triggerBackup('Full')" class="btn btn-primary w-100 p-3 rounded-4 shadow-sm text-start">
+              <div class="fw-bold fs-6"><i class="bi bi-archive-fill me-2"></i> Full Backup</div>
+              <small class="opacity-75">Database, Media Assets & AI Prompts</small>
+            </button>
+          </div>
+          <div class="col-md-3">
+            <button onclick="triggerBackup('Database')" class="btn btn-success w-100 p-3 rounded-4 shadow-sm text-start">
+              <div class="fw-bold fs-6"><i class="bi bi-database-fill-gear me-2"></i> Database Dump</div>
+              <small class="opacity-75">SQLite3 Database & User Accounts</small>
+            </button>
+          </div>
+          <div class="col-md-3">
+            <button onclick="triggerBackup('Media')" class="btn btn-warning text-dark w-100 p-3 rounded-4 shadow-sm text-start">
+              <div class="fw-bold fs-6"><i class="bi bi-file-earmark-image-fill me-2"></i> Media Files</div>
+              <small class="opacity-75">Uploaded Homework Scans & Audio</small>
+            </button>
+          </div>
+          <div class="col-md-3">
+            <button onclick="triggerBackup('Prompts')" class="btn btn-purple text-white w-100 p-3 rounded-4 shadow-sm text-start" style="background:#8b5cf6;">
+              <div class="fw-bold fs-6"><i class="bi bi-code-slash me-2"></i> AI Prompts</div>
+              <small class="opacity-75">Module Prompt Templates & Versions</small>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN REPOSITORY TABLE -->
+    <div class="col-lg-8">
+      <div class="backup-card p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-hdd-stack-fill text-info me-2"></i> Backup Archive Repository</h5>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 fs-8">
+            <thead>
+              <tr>
+                <th>Archive Component</th>
+                <th>File Size</th>
+                <th>SHA256 Checksum</th>
+                <th>Created At</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in backup_files %}
+                <tr>
+                  <td>
+                    <span class="badge {% if f.component_type == 'Full' %}bg-primary{% elif f.component_type == 'Database' %}bg-success{% else %}bg-secondary{% endif %} rounded-pill">
+                      {{ f.component_type }}
+                    </span>
+                  </td>
+                  <td class="fw-semibold">{{ f.file_size_bytes }} bytes</td>
+                  <td><code class="text-info fs-9" title="{{ f.checksum_sha256 }}">{{ f.checksum_sha256|slice:":12" }}...</code></td>
+                  <td class="text-muted">{{ f.created_at|date:"M d, Y H:i" }}</td>
+                  <td class="text-end">
+                    <a href="{% url 'backup_download_view' f.id %}" class="btn btn-sm btn-outline-primary rounded-circle" title="Download">
+                      <i class="bi bi-download"></i>
+                    </a>
+                    <button onclick="restoreBackup({{ f.id }}, '{{ f.component_type }}')" class="btn btn-sm btn-outline-warning rounded-circle" title="Restore">
+                      <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                    <button onclick="deleteBackup({{ f.id }})" class="btn btn-sm btn-outline-danger rounded-circle" title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-4">No backup archives stored yet. Trigger your first backup above!</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT AUDIT LOGS COLUMN -->
+    <div class="col-lg-4">
+      <div class="backup-card p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-journal-text me-2"></i> Backup & Restore Audit Log</h6>
+        <div class="list-group list-group-flush fs-9">
+          {% for h in backup_history %}
+            <div class="list-group-item bg-transparent px-0">
+              <div class="d-flex justify-content-between">
+                <strong class="text-primary">{{ h.action }}</strong>
+                <small class="text-muted">{{ h.timestamp|date:"H:i:s" }}</small>
+              </div>
+              <div class="text-muted">{{ h.backup_file_name }}</div>
+              <small class="text-secondary opacity-75">{{ h.details|truncatechars:45 }}</small>
+            </div>
+          {% empty %}
+            <p class="text-muted fs-9 mb-0">No backup activity logged yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function triggerBackup(jobType) {
+    if (confirm(`Start ${jobType} backup now?`)) {
+      fetch("{% url 'backup_create_api' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ job_type: jobType })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert(data.error);
+        }
+      });
+    }
+  }
+
+  function restoreBackup(backupId, componentType) {
+    if (confirm(`CRITICAL WARNING: Restore system from ${componentType} backup #${backupId}?\nAn automated pre-restore safety snapshot will be created automatically.`)) {
+      fetch(`/tutor/admin-hub/backup/${backupId}/restore/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert(data.error);
+        }
+      });
+    }
+  }
+
+  function deleteBackup(backupId) {
+    if (confirm("Delete this backup archive permanently?")) {
+      fetch(`/tutor/admin-hub/backup/${backupId}/delete/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          location.reload();
+        }
+      });
+    }
+  }
+</script>
+{% endblock %}

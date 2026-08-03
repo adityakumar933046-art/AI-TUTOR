@@ -1,0 +1,333 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ active_scenario.title }} - AI Speaking Coach{% endblock %}
+
+{% block extra_head %}
+<style>
+  .speaking-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.75rem;
+  }
+
+  .turn-bubble {
+    max-width: 80%;
+    padding: 1rem 1.25rem;
+    border-radius: 1.25rem;
+    margin-bottom: 1rem;
+    position: relative;
+    font-size: 1rem;
+  }
+
+  .turn-bubble.student {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 0.25rem;
+  }
+
+  .turn-bubble.ai_coach {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-color);
+    margin-right: auto;
+    border-bottom-left-radius: 0.25rem;
+  }
+
+  #speaking-wave-canvas {
+    width: 100%;
+    height: 50px;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 1rem;
+  }
+
+  .avatar-pulse {
+    animation: avatarPulse 2s infinite;
+  }
+
+  @keyframes avatarPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- HEADER & ROLEPLAY SCENARIO SELECTOR -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold shadow avatar-pulse" style="width:52px; height:52px; font-size:1.5rem;">
+        <i class="{{ active_scenario.icon_class }}"></i>
+      </div>
+      <div>
+        <h2 class="fw-bold mb-0" style="color: var(--text-color);">{{ active_scenario.title }}</h2>
+        <span class="badge bg-danger rounded-pill fs-8"><i class="bi bi-person-fill me-1"></i> Role: {{ active_scenario.ai_role_name }}</span>
+        <span class="badge bg-primary rounded-pill fs-8 ms-1">{{ active_scenario.category }}</span>
+      </div>
+    </div>
+
+    <!-- Finish & Get Report Button -->
+    <div>
+      <button class="btn btn-success rounded-pill fw-bold shadow px-4" onclick="finishSessionAndGetReport()">
+        <i class="bi bi-award-fill me-1"></i> Finish & Get Feedback Report
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN: CONVERSATION TIMELINE & MIC CONTROLS -->
+    <div class="col-lg-8">
+      
+      <div class="speaking-card p-4 d-flex flex-column mb-4" style="height: 520px;">
+        <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+          <span class="fw-bold fs-7 text-muted"><i class="bi bi-chat-quote-fill me-1 text-danger"></i> Live Roleplay Conversation Feed</span>
+          <span class="badge bg-danger-subtle text-danger rounded-pill fs-9"><i class="bi bi-record-circle-fill me-1"></i> AI Speaking Active</span>
+        </div>
+
+        <!-- Conversation Turn Timeline -->
+        <div class="flex-grow-1 overflow-auto pe-2" id="turns-container">
+          {% for turn in turns %}
+            <div class="turn-bubble {{ turn.speaker }}">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <small class="fw-bold opacity-75">{% if turn.speaker == 'student' %}You (Student){% else %}{{ active_scenario.ai_role_name }}{% endif %}</small>
+                {% if turn.speaker == 'ai_coach' %}
+                  <button class="btn btn-link btn-sm text-reset p-0" onclick="speakText('{{ turn.text_content|escapejs }}')">
+                    <i class="bi bi-volume-up-fill"></i>
+                  </button>
+                {% endif %}
+              </div>
+              <div>{{ turn.text_content }}</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Waveform visualizer & mic controls -->
+        <div class="pt-3 border-top">
+          <canvas id="speaking-wave-canvas" class="mb-2"></canvas>
+          <div class="d-flex align-items-center justify-content-center gap-3">
+            <button id="speaking-mic-btn" class="btn btn-danger btn-lg rounded-circle p-3 shadow-lg" onclick="toggleSpeakingRecord()" style="width:64px; height:64px;">
+              <i class="bi bi-mic-fill fs-3"></i>
+            </button>
+          </div>
+          <div class="text-center mt-2">
+            <span id="speaking-status-text" class="fw-semibold fs-8 text-muted">Tap mic to speak to {{ active_scenario.ai_role_name }}</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: SCENARIO SELECTOR & MULTI-MODAL TOOLBAR -->
+    <div class="col-lg-4">
+      
+      <!-- Roleplay Scenarios Cards -->
+      <div class="speaking-card p-4 mb-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-grid-fill text-danger me-2"></i> Roleplay Scenarios</h6>
+        <div class="list-group list-group-flush" style="max-height: 280px; overflow-y: auto;">
+          {% for sc in scenarios %}
+            <a href="{% url 'speaking_scenario_view' scenario_id=sc.id %}" class="list-group-item list-group-item-action bg-transparent border-0 rounded-3 p-2 mb-2 glass-card {% if active_scenario.id == sc.id %}active bg-danger text-white{% endif %}">
+              <div class="d-flex align-items-center gap-2">
+                <i class="{{ sc.icon_class }} fs-5"></i>
+                <div class="text-truncate fw-bold fs-7">{{ sc.title }}</div>
+              </div>
+              <small class="fs-9 opacity-75">{{ sc.ai_role_name }}</small>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Multi-Modal Integration Card -->
+      <div class="speaking-card p-4 text-center">
+        <div class="sparky-avatar mx-auto mb-2" style="width:48px; height:48px; font-size:1.5rem; background: linear-gradient(135deg, #ef4444 0%, #3b82f6 100%); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="bi bi-robot"></i>
+        </div>
+        <h6 class="fw-bold mb-1">Speaking Integration Tools</h6>
+        <p class="text-muted fs-8 mb-3">Seamlessly switch to other EduVerse tools!</p>
+        
+        <div class="d-grid gap-2">
+          <a href="{% url 'voice_tutor_session' session_id=active_session.chat_session.id %}" class="btn btn-danger py-2 fs-7 shadow-sm rounded-pill">
+            <i class="bi bi-mic me-1"></i> Open Voice Tutor
+          </a>
+          <a href="{% url 'reading_coach' %}" class="btn btn-success text-white py-2 fs-7 shadow-sm rounded-pill fw-semibold">
+            <i class="bi bi-book-half me-1"></i> Practice Reading
+          </a>
+          <a href="{% url 'chat_tutor_session' session_id=active_session.chat_session.id %}" class="btn btn-edu-primary py-2 fs-7 shadow-sm">
+            <i class="bi bi-chat-left-text me-1"></i> Ask in Chat
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- END OF SESSION FEEDBACK REPORT MODAL -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content glass-modal border-0 rounded-4 shadow-lg p-3">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-award-fill text-warning me-2"></i> Speaking Report & Grammar Feedback</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Scores Row -->
+        <div class="row g-3 text-center mb-4">
+          <div class="col-3">
+            <div class="p-3 bg-light rounded-3">
+              <div class="fw-bold fs-4 text-primary" id="modal-overall-score">0%</div>
+              <small class="text-muted fs-9">Overall</small>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="p-3 bg-light rounded-3">
+              <div class="fw-bold fs-4 text-success" id="modal-grammar-score">0%</div>
+              <small class="text-muted fs-9">Grammar</small>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="p-3 bg-light rounded-3">
+              <div class="fw-bold fs-4 text-info" id="modal-vocab-score">0%</div>
+              <small class="text-muted fs-9">Vocabulary</small>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="p-3 bg-light rounded-3">
+              <div class="fw-bold fs-4 text-warning" id="modal-xp-earned">+0</div>
+              <small class="text-muted fs-9">XP Earned</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gemini Report -->
+        <div class="alert alert-primary border-0 rounded-3 mb-3 p-3 fs-7" id="modal-summary-report"></div>
+
+        <!-- Grammar Corrections Feed -->
+        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle-fill text-success me-1"></i> Grammar Tips & Upgrades</h6>
+        <div id="modal-corrections-container" class="mb-3"></div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let recognition;
+  let isRecording = false;
+  let spokenText = "";
+  const sessionId = {{ active_session.id }};
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRec();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        spokenText = event.results[0][0].transcript;
+        sendSpokenTurn(spokenText);
+      };
+
+      recognition.onend = () => {
+        isRecording = false;
+        document.getElementById('speaking-mic-btn').className = "btn btn-danger btn-lg rounded-circle p-3 shadow-lg";
+        document.getElementById('speaking-status-text').innerText = "Tap mic to speak";
+      };
+    }
+  });
+
+  function toggleSpeakingRecord() {
+    const btn = document.getElementById('speaking-mic-btn');
+    const status = document.getElementById('speaking-status-text');
+
+    if (!isRecording) {
+      isRecording = true;
+      btn.className = "btn btn-warning btn-lg rounded-circle p-3 shadow-lg pulse";
+      status.innerText = "Listening... Speak now!";
+      if (recognition) recognition.start();
+    } else {
+      isRecording = false;
+      btn.className = "btn btn-danger btn-lg rounded-circle p-3 shadow-lg";
+      status.innerText = "Processing...";
+      if (recognition) recognition.stop();
+    }
+  }
+
+  async function sendSpokenTurn(text) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Append student turn bubble
+    appendBubble('student', 'You', text);
+
+    const res = await fetch(`/tutor/speaking/session/${sessionId}/respond/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ spoken_text: text })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      appendBubble('ai_coach', data.ai_role_name, data.ai_reply);
+      speakText(data.ai_reply);
+    }
+  }
+
+  function appendBubble(role, speakerName, text) {
+    const container = document.getElementById('turns-container');
+    const div = document.createElement('div');
+    div.className = `turn-bubble ${role}`;
+    div.innerHTML = `<div class="d-flex align-items-center justify-content-between mb-1"><small class="fw-bold opacity-75">${speakerName}</small></div><div>${text}</div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function speakText(text) {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 1.0;
+    window.speechSynthesis.speak(utt);
+  }
+
+  async function finishSessionAndGetReport() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const res = await fetch(`/tutor/speaking/session/${sessionId}/feedback/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+    });
+
+    const data = await res.json();
+
+    document.getElementById('modal-overall-score').innerText = `${data.overall_score}%`;
+    document.getElementById('modal-grammar-score').innerText = `${data.grammar_score}%`;
+    document.getElementById('modal-vocab-score').innerText = `${data.vocabulary_score}%`;
+    document.getElementById('modal-xp-earned').innerText = `+${data.xp_earned}`;
+    document.getElementById('modal-summary-report').innerText = data.summary_report;
+
+    const corrContainer = document.getElementById('modal-corrections-container');
+    corrContainer.innerHTML = "";
+
+    if (data.corrections && data.corrections.length > 0) {
+      data.corrections.forEach(c => {
+        corrContainer.innerHTML += `<div class="alert alert-warning border-0 p-2 fs-8 mb-2"><s>${c.original}</s> ➡️ <strong>${c.corrected}</strong><br><small class="text-muted">${c.rule}</small></div>`;
+      });
+    } else {
+      corrContainer.innerHTML = `<div class="text-muted fs-8">No major grammar errors detected! Excellent speaking!</div>`;
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
+    modal.show();
+  }
+</script>
+{% endblock %}

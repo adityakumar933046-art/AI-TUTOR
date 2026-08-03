@@ -1,0 +1,129 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Global Search Engine - EduVerse AI Kids{% endblock %}
+
+{% block extra_head %}
+<style>
+  .search-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- SEARCH HERO HEADER -->
+  <div class="search-card p-4 mb-4 text-center">
+    <h3 class="fw-bold mb-2"><i class="bi bi-search text-primary me-2"></i> Global Platform Search</h3>
+    <p class="text-muted fs-8 mb-4">Search across Students, Parents, Homeworks, Visual Lessons, Chats, Games, Reading & Speaking Sessions.</p>
+    
+    <form method="GET" action="{% url 'global_search' %}" class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
+          <input type="text" name="q" class="form-control px-4 fs-6" placeholder="Type search query (e.g. Fractions, Photosynthesis, Alex)..." value="{{ query }}">
+          <button type="submit" class="btn btn-primary px-4 fw-semibold">
+            <i class="bi bi-search me-1"></i> Search
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if query %}
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="fw-bold mb-0">Search Results for "{{ query }}"</h5>
+      <span class="badge bg-indigo rounded-pill fs-8">{{ results.total_results }} Total Matches</span>
+    </div>
+
+    <div class="row g-4">
+      
+      <!-- STUDENTS RESULTS -->
+      {% if results.students %}
+        <div class="col-md-6">
+          <div class="search-card p-3">
+            <h6 class="fw-bold mb-2 text-primary"><i class="bi bi-person-badge-fill me-1"></i> Students ({{ results.students|length }})</h6>
+            <div class="list-group list-group-flush">
+              {% for s in results.students %}
+                <div class="list-group-item bg-transparent border-0 px-0 py-1">
+                  <strong>{{ s.username }}</strong> <small class="text-muted">({{ s.email }})</small>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- PARENTS RESULTS -->
+      {% if results.parents %}
+        <div class="col-md-6">
+          <div class="search-card p-3">
+            <h6 class="fw-bold mb-2 text-success"><i class="bi bi-shield-person-fill me-1"></i> Parents ({{ results.parents|length }})</h6>
+            <div class="list-group list-group-flush">
+              {% for p in results.parents %}
+                <div class="list-group-item bg-transparent border-0 px-0 py-1">
+                  <strong>{{ p.username }}</strong> <small class="text-muted">({{ p.email }})</small>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- HOMEWORKS RESULTS -->
+      {% if results.homeworks %}
+        <div class="col-md-6">
+          <div class="search-card p-3">
+            <h6 class="fw-bold mb-2 text-secondary"><i class="bi bi-camera-fill me-1"></i> Homework Scans ({{ results.homeworks|length }})</h6>
+            <div class="list-group list-group-flush">
+              {% for hw in results.homeworks %}
+                <a href="{% url 'homework_detail_view' hw.id %}" class="list-group-item list-group-item-action bg-transparent border-0 px-0 py-1">
+                  <span class="fw-semibold">{{ hw.title }}</span> <span class="badge bg-secondary rounded-pill fs-9">{{ hw.subject }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- VISUAL LESSONS RESULTS -->
+      {% if results.lessons %}
+        <div class="col-md-6">
+          <div class="search-card p-3">
+            <h6 class="fw-bold mb-2 text-info"><i class="bi bi-diagram-3-fill me-1"></i> Visual Lessons ({{ results.lessons|length }})</h6>
+            <div class="list-group list-group-flush">
+              {% for l in results.lessons %}
+                <a href="{% url 'visual_lesson_view' l.id %}" class="list-group-item list-group-item-action bg-transparent border-0 px-0 py-1">
+                  <span class="fw-semibold">{{ l.topic }}</span> <span class="badge bg-info rounded-pill fs-9">{{ l.subject }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- GAMES RESULTS -->
+      {% if results.games %}
+        <div class="col-md-6">
+          <div class="search-card p-3">
+            <h6 class="fw-bold mb-2 text-danger"><i class="bi bi-controller me-1"></i> AI Games ({{ results.games|length }})</h6>
+            <div class="list-group list-group-flush">
+              {% for g in results.games %}
+                <a href="{% url 'game_detail_view' g.id %}" class="list-group-item list-group-item-action bg-transparent border-0 px-0 py-1">
+                  <span class="fw-semibold">{{ g.title }}</span> <span class="badge bg-danger rounded-pill fs-9">{{ g.subject }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

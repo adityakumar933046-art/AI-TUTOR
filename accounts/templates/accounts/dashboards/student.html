@@ -1,0 +1,214 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Student Hub - EduVerse AI Kids{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Top Welcome Banner -->
+  <div class="glass-card p-4 mb-4 border-0 shadow-sm position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);">
+    <div class="row align-items-center">
+      <div class="col-md-7">
+        <span class="badge bg-warning text-dark rounded-pill px-3 py-1 mb-2 fw-bold shadow-sm">
+          <i class="bi bi-stars me-1"></i> AI Tutor Active
+        </span>
+        <h2 class="fw-bold mb-1" style="color: var(--text-color);">Welcome back, {{ user.first_name|default:user.username }}! 🚀</h2>
+        <p class="text-muted mb-0">Grade: <span class="fw-semibold text-primary">{{ profile.grade }}</span> • Age: <span class="fw-semibold">{{ profile.age }}</span></p>
+      </div>
+      <div class="col-md-5 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end">
+        <a href="{% url 'learning_brain' %}" class="btn text-white shadow px-3 fw-semibold rounded-pill" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
+          <i class="bi bi-cpu-fill me-1"></i> Learning Brain
+        </a>
+        <a href="{% url 'game_center' %}" class="btn text-white shadow px-3 fw-semibold rounded-pill" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);">
+          <i class="bi bi-controller me-1"></i> Game Center
+        </a>
+        <a href="{% url 'speaking_coach' %}" class="btn btn-danger text-white shadow px-3 fw-semibold rounded-pill">
+          <i class="bi bi-chat-quote-fill me-1"></i> Speaking Coach
+        </a>
+        <a href="{% url 'reading_coach' %}" class="btn btn-success text-white shadow px-3 fw-semibold rounded-pill">
+          <i class="bi bi-book-half me-1"></i> Reading Coach
+        </a>
+        <a href="{% url 'homework_scanner' %}" class="btn btn-secondary text-white shadow px-3 fw-semibold rounded-pill">
+          <i class="bi bi-camera-fill me-1"></i> HW Scanner
+        </a>
+        <a href="{% url 'visual_learning' %}" class="btn btn-info text-white shadow px-3 fw-semibold rounded-pill">
+          <i class="bi bi-diagram-3-fill me-1"></i> Visual Engine
+        </a>
+        <a href="{% url 'whiteboard' %}" class="btn btn-warning text-dark shadow px-3 fw-semibold rounded-pill">
+          <i class="bi bi-easel-fill me-1"></i> Whiteboard
+        </a>
+        <a href="{% url 'voice_tutor' %}" class="btn btn-danger shadow px-3 fw-semibold rounded-pill">
+          <i class="bi bi-mic-fill me-1"></i> Voice Tutor
+        </a>
+        <a href="{% url 'chat_tutor' %}" class="btn btn-edu-primary shadow px-3">
+          <i class="bi bi-robot me-1"></i> Chat AI
+        </a>
+        <a href="{% url 'profile' %}" class="btn btn-outline-primary rounded-circle p-2" title="Edit Profile">
+          <i class="bi bi-person-gear fs-5"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gamified Stats Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-4">
+      <div class="glass-card p-4 border-0 shadow-sm d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-warning text-dark p-3 fs-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px;">
+          <i class="bi bi-star-fill"></i>
+        </div>
+        <div>
+          <div class="text-muted fs-8 text-uppercase fw-bold">Experience Points</div>
+          <div class="fw-bold fs-3 text-warning">{{ profile.xp }} XP</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="glass-card p-4 border-0 shadow-sm d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-info text-white p-3 fs-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px;">
+          <i class="bi bi-coin"></i>
+        </div>
+        <div>
+          <div class="text-muted fs-8 text-uppercase fw-bold">EduCoins</div>
+          <div class="fw-bold fs-3 text-info">{{ profile.coins }} Coins</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="glass-card p-4 border-0 shadow-sm d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-danger text-white p-3 fs-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px;">
+          <i class="bi bi-fire"></i>
+        </div>
+        <div>
+          <div class="text-muted fs-8 text-uppercase fw-bold">Daily Streak</div>
+          <div class="fw-bold fs-3 text-danger">{{ profile.streak_days }} Days</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Subject Selector Grid -->
+  <div class="mb-5">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h4 class="fw-bold mb-0" style="color: var(--text-color);"><i class="bi bi-grid-fill text-primary me-2"></i> Choose a Subject to Learn</h4>
+      <span class="text-muted fs-7">Select a topic to start AI Tutor Session</span>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <a href="{% url 'chat_create' %}?subject=Math" class="text-decoration-none">
+          <div class="glass-card p-3 text-center border-0 shadow-sm h-100 btn-hover-grow">
+            <div class="fs-1 mb-1">🔢</div>
+            <h6 class="fw-bold text-dark mb-0">Mathematics</h6>
+            <span class="fs-8 text-muted">Algebra & Logic</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <a href="{% url 'chat_create' %}?subject=Science" class="text-decoration-none">
+          <div class="glass-card p-3 text-center border-0 shadow-sm h-100 btn-hover-grow">
+            <div class="fs-1 mb-1">🔬</div>
+            <h6 class="fw-bold text-dark mb-0">Science</h6>
+            <span class="fs-8 text-muted">Physics & Biology</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <a href="{% url 'chat_create' %}?subject=English" class="text-decoration-none">
+          <div class="glass-card p-3 text-center border-0 shadow-sm h-100 btn-hover-grow">
+            <div class="fs-1 mb-1">📖</div>
+            <h6 class="fw-bold text-dark mb-0">English</h6>
+            <span class="fs-8 text-muted">Reading & Grammar</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <a href="{% url 'chat_create' %}?subject=Coding" class="text-decoration-none">
+          <div class="glass-card p-3 text-center border-0 shadow-sm h-100 btn-hover-grow">
+            <div class="fs-1 mb-1">💻</div>
+            <h6 class="fw-bold text-dark mb-0">Coding</h6>
+            <span class="fs-8 text-muted">Python & Algorithms</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <a href="{% url 'chat_create' %}?subject=History" class="text-decoration-none">
+          <div class="glass-card p-3 text-center border-0 shadow-sm h-100 btn-hover-grow">
+            <div class="fs-1 mb-1">🏛️</div>
+            <h6 class="fw-bold text-dark mb-0">History</h6>
+            <span class="fs-8 text-muted">World Events</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <a href="{% url 'chat_create' %}?subject=Geography" class="text-decoration-none">
+          <div class="glass-card p-3 text-center border-0 shadow-sm h-100 btn-hover-grow">
+            <div class="fs-1 mb-1">🌍</div>
+            <h6 class="fw-bold text-dark mb-0">Geography</h6>
+            <span class="fs-8 text-muted">Maps & Oceans</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <a href="{% url 'chat_create' %}?subject=Reasoning" class="text-decoration-none">
+          <div class="glass-card p-3 text-center border-0 shadow-sm h-100 btn-hover-grow">
+            <div class="fs-1 mb-1">🧠</div>
+            <h6 class="fw-bold text-dark mb-0">Reasoning</h6>
+            <span class="fs-8 text-muted">Puzzles & Logic</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <a href="{% url 'chat_create' %}?subject=General Knowledge" class="text-decoration-none">
+          <div class="glass-card p-3 text-center border-0 shadow-sm h-100 btn-hover-grow">
+            <div class="fs-1 mb-1">💡</div>
+            <h6 class="fw-bold text-dark mb-0">General Knowledge</h6>
+            <span class="fs-8 text-muted">Trivia & Facts</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Chat Sessions -->
+  <div class="glass-card p-4 border-0 shadow-sm">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="fw-bold mb-0"><i class="bi bi-chat-left-text text-primary me-2"></i> Recent AI Tutor Conversations</h5>
+      <a href="{% url 'chat_create' %}" class="btn btn-outline-primary btn-sm rounded-pill"><i class="bi bi-plus-lg me-1"></i> New Session</a>
+    </div>
+
+    {% if recent_chats %}
+      <div class="list-group list-group-flush">
+        {% for chat in recent_chats %}
+          <a href="{% url 'chat_tutor_session' session_id=chat.id %}" class="list-group-item list-group-item-action bg-transparent border-0 rounded-3 mb-2 p-3 glass-card d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                <i class="bi bi-robot fs-5"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">{{ chat.title }}</h6>
+                <span class="fs-8 text-muted"><span class="badge bg-secondary-subtle text-secondary me-1">{{ chat.subject }}</span> Updated {{ chat.updated_at|timesince }} ago</span>
+              </div>
+            </div>
+            <span class="btn btn-sm btn-edu-primary rounded-pill px-3">Continue <i class="bi bi-arrow-right"></i></span>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="bi bi-chat-square-dots fs-1 text-primary mb-2 d-block"></i>
+        <p class="mb-2">No chat sessions started yet.</p>
+        <a href="{% url 'chat_create' %}" class="btn btn-edu-primary btn-sm px-4">Start Your First Chat</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

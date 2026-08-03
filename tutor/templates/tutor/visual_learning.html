@@ -1,0 +1,341 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ active_lesson.topic }} - AI Visual Learning Engine{% endblock %}
+
+{% block extra_head %}
+<!-- Mermaid.js for Dynamic Diagram Rendering -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<!-- Markdown-it -->
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
+
+<style>
+  .visual-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.75rem;
+  }
+
+  .mermaid-box {
+    background: #ffffff;
+    border-radius: 1.5rem;
+    padding: 2rem;
+    overflow-x: auto;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  [data-theme="dark"] .mermaid-box {
+    background: #0f172a;
+  }
+
+  .quiz-option-btn {
+    border: 1.5px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-color);
+    border-radius: 50rem;
+    padding: 0.75rem 1.25rem;
+    font-weight: 500;
+    text-align: left;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .quiz-option-btn:hover {
+    border-color: #4f46e5;
+    background: rgba(79, 70, 229, 0.08);
+  }
+
+  .quiz-option-btn.correct {
+    background: #10b981 !important;
+    color: white !important;
+    border-color: #10b981 !important;
+  }
+
+  .quiz-option-btn.wrong {
+    background: #ef4444 !important;
+    color: white !important;
+    border-color: #ef4444 !important;
+  }
+
+  .topic-chip {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 50rem;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .topic-chip:hover {
+    background: #4f46e5;
+    color: white;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- TOPIC SEARCH & GENERATOR BAR -->
+  <div class="visual-card p-4 mb-4">
+    <div class="row align-items-center gy-3">
+      <div class="col-md-7">
+        <span class="badge bg-warning text-dark rounded-pill px-3 py-1 mb-2 fw-bold shadow-sm">
+          <i class="bi bi-eye-fill me-1"></i> AI Visual Learning Engine
+        </span>
+        <h3 class="fw-bold mb-1" style="color: var(--text-color);">What do you want to visualize today? 🎨</h3>
+        <p class="text-muted fs-7 mb-0">Type any concept and Sparky will build an interactive visual lesson for you!</p>
+      </div>
+
+      <div class="col-md-5">
+        <form id="visual-generate-form" onsubmit="generateVisualLesson(event)">
+          {% csrf_token %}
+          <div class="input-group">
+            <input type="text" id="visual-topic-input" class="form-control glass-input rounded-start-pill py-2.5" placeholder="e.g. Photosynthesis, Solar System, Fractions..." value="{{ active_lesson.topic }}" required>
+            <button type="submit" id="generate-btn" class="btn btn-edu-primary rounded-end-pill px-4 shadow">
+              <i class="bi bi-sparkles me-1"></i> Visualize
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Suggested Topic Chips -->
+    <div class="d-flex flex-wrap gap-2 mt-3 pt-2 border-top">
+      <span class="fs-8 text-muted fw-semibold align-self-center me-1">Try these:</span>
+      <span class="topic-chip" onclick="quickVisualize('Photosynthesis', 'Science')">🌿 Photosynthesis</span>
+      <span class="topic-chip" onclick="quickVisualize('Water Cycle', 'Science')">💧 Water Cycle</span>
+      <span class="topic-chip" onclick="quickVisualize('Fractions & Decimals', 'Math')">🔢 Fractions</span>
+      <span class="topic-chip" onclick="quickVisualize('Solar System', 'Science')">🪐 Solar System</span>
+      <span class="topic-chip" onclick="quickVisualize('Python Loops', 'Coding')">💻 Python Loops</span>
+      <span class="topic-chip" onclick="quickVisualize('Gravity & Orbits', 'Science')">🌌 Gravity</span>
+    </div>
+  </div>
+
+  <!-- LESSON HEADER & BOOKMARK -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow" style="width:48px; height:48px; font-size:1.4rem;">
+        <i class="bi bi-diagram-3-fill"></i>
+      </div>
+      <div>
+        <h2 class="fw-bold mb-0" style="color: var(--text-color);">{{ active_lesson.topic }}</h2>
+        <span class="badge bg-primary text-white rounded-pill fs-8">
+          <i class="bi bi-tag-fill me-1"></i> {{ active_lesson.visualization_type }}
+        </span>
+        <span class="badge bg-secondary-subtle text-secondary rounded-pill fs-8 ms-1">
+          {{ active_lesson.subject }}
+        </span>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button id="bookmark-btn" class="btn {% if active_lesson.is_bookmarked %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %} rounded-pill px-3 shadow-sm" onclick="toggleBookmark({{ active_lesson.id }})">
+        <i class="bi {% if active_lesson.is_bookmarked %}bi-bookmark-star-fill{% else %}bi-bookmark-star{% endif %} me-1"></i>
+        <span id="bookmark-text">{% if active_lesson.is_bookmarked %}Bookmarked{% else %}Bookmark{% endif %}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN: DIAGRAM & EXPLANATION -->
+    <div class="col-lg-8">
+      
+      <!-- 1. MERMAID.JS DYNAMIC DIAGRAM BOX -->
+      <div class="visual-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-diagram-3 me-2 text-primary"></i> Concept Diagram Flow</h5>
+        
+        <div class="mermaid-box text-center">
+          <pre class="mermaid" id="mermaid-diagram">
+            {{ active_lesson.diagram_data }}
+          </pre>
+        </div>
+      </div>
+
+      <!-- 2. CONCEPT EXPLANATION & ANALOGY -->
+      <div class="visual-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-book-half me-2 text-success"></i> Concept Breakdown</h5>
+        
+        <div class="fs-7 text-content mb-4" id="explanation-text-content">
+          {{ active_lesson.explanation_text }}
+        </div>
+
+        {% if active_lesson.analogy_text %}
+          <div class="alert alert-warning border-0 rounded-3 p-3 shadow-sm">
+            <div class="fw-bold text-dark mb-1"><i class="bi bi-lightbulb-fill me-1 text-warning"></i> Real-World Analogy for Kids:</div>
+            <div class="fs-7 text-muted">{{ active_lesson.analogy_text }}</div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- 3. INTERACTIVE MINI QUIZ -->
+      <div class="visual-card p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+          <h5 class="fw-bold mb-0"><i class="bi bi-trophy-fill text-warning me-2"></i> Interactive Mini Quiz</h5>
+          <span class="badge bg-warning text-dark rounded-pill px-3 py-1 fs-8">+50 XP Available</span>
+        </div>
+
+        {% if quiz_list %}
+          <div id="quiz-container">
+            {% for q in quiz_list %}
+              <div class="quiz-question-card glass-card p-3 mb-3 border-0 shadow-sm rounded-3">
+                <h6 class="fw-bold text-primary mb-3">Question {{ forloop.counter }}: {{ q.question }}</h6>
+                
+                <div class="d-grid gap-2 mb-2">
+                  {% for opt in q.options %}
+                    <button class="quiz-option-btn fs-7" onclick="checkAnswer(this, {{ forloop.parentloop.counter0 }}, {{ forloop.counter0 }}, {{ q.correct_index }}, '{{ q.explanation|escapejs }}')">
+                      <span class="fw-bold me-2">{{ forloop.counter|stringformat:"c" }}.</span> {{ opt }}
+                    </button>
+                  {% endfor %}
+                </div>
+
+                <div class="quiz-explanation-feedback alert alert-success border-0 rounded-3 p-2 fs-8 mt-2 d-none"></div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: SUMMARY & MULTI-MODAL SHORTCUTS -->
+    <div class="col-lg-4">
+      
+      <!-- Key Summary Card -->
+      <div class="visual-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-check2-circle text-primary me-2"></i> Key Takeaways</h5>
+        <div class="fs-7 text-muted">
+          {{ active_lesson.summary_text|linebreaks }}
+        </div>
+      </div>
+
+      <!-- Multi-Modal Integration Card -->
+      <div class="visual-card p-4 mb-4 text-center">
+        <div class="sparky-avatar mx-auto mb-2" style="width:48px; height:48px; font-size:1.5rem; background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="bi bi-robot"></i>
+        </div>
+        <h6 class="fw-bold mb-1">Want to Explore More?</h6>
+        <p class="text-muted fs-8 mb-3">Ask questions about this diagram in Chat, Voice, or draw it on the Whiteboard!</p>
+        
+        <div class="d-grid gap-2">
+          <a href="{% url 'chat_tutor_session' session_id=active_lesson.chat_session.id %}" class="btn btn-edu-primary py-2 fs-7 shadow-sm">
+            <i class="bi bi-chat-left-text me-1"></i> Ask Sparky in Chat
+          </a>
+          <a href="{% url 'voice_tutor_session' session_id=active_lesson.chat_session.id %}" class="btn btn-danger py-2 fs-7 shadow-sm rounded-pill">
+            <i class="bi bi-mic me-1"></i> Talk via Voice Tutor
+          </a>
+          <a href="{% url 'whiteboard' %}" class="btn btn-warning text-dark py-2 fs-7 shadow-sm rounded-pill fw-semibold">
+            <i class="bi bi-easel me-1"></i> Draw on Whiteboard
+          </a>
+        </div>
+      </div>
+
+      <!-- Saved Bookmarked Lessons List -->
+      <div class="visual-card p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-bookmark-fill text-warning me-2"></i> Bookmarked Lessons</h6>
+        {% if bookmarked_lessons %}
+          <div class="list-group list-group-flush">
+            {% for b_lesson in bookmarked_lessons %}
+              <a href="{% url 'visual_lesson_view' lesson_id=b_lesson.id %}" class="list-group-item list-group-item-action bg-transparent border-0 rounded-3 p-2 text-decoration-none glass-card mb-2">
+                <div class="fw-bold fs-7 text-dark text-truncate">{{ b_lesson.topic }}</div>
+                <span class="fs-8 text-muted"><span class="badge bg-secondary-subtle text-secondary py-0 me-1">{{ b_lesson.visualization_type }}</span> {{ b_lesson.subject }}</span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted fs-8 mb-0">No bookmarked lessons yet. Click the Bookmark button to save lessons for later!</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  const md = window.markdownit({ html: true });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const expEl = document.getElementById('explanation-text-content');
+    if (expEl) {
+      expEl.innerHTML = md.render(expEl.innerText);
+    }
+  });
+
+  function quickVisualize(topic, subject) {
+    document.getElementById('visual-topic-input').value = topic;
+    generateVisualLesson(new Event('submit'), subject);
+  }
+
+  async function generateVisualLesson(e, subject='General Knowledge') {
+    if (e) e.preventDefault();
+    const topic = document.getElementById('visual-topic-input').value.trim();
+    if (!topic) return;
+
+    const btn = document.getElementById('generate-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Building...';
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    try {
+      const res = await fetch('/tutor/visual/generate/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ topic: topic, subject: subject })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.redirect_url;
+      } else {
+        alert("Oops! " + (data.error || "Could not generate visual lesson."));
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-sparkles me-1"></i> Visualize';
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-sparkles me-1"></i> Visualize';
+      alert("Network error generating visual lesson.");
+    }
+  }
+
+  async function toggleBookmark(id) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const res = await fetch(`/tutor/visual/${id}/bookmark/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken }
+    });
+    const data = await res.json();
+    if (data.success) {
+      window.location.reload();
+    }
+  }
+
+  function checkAnswer(btn, qIdx, optIdx, correctIdx, expText) {
+    const parentCard = btn.closest('.quiz-question-card');
+    const options = parentCard.querySelectorAll('.quiz-option-btn');
+    const feedback = parentCard.querySelector('.quiz-explanation-feedback');
+
+    options.forEach(b => b.disabled = true);
+
+    if (optIdx === correctIdx) {
+      btn.classList.add('correct');
+      feedback.className = 'quiz-explanation-feedback alert alert-success border-0 rounded-3 p-2 fs-8 mt-2';
+      feedback.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> <strong>Correct! (+15 XP)</strong> ${expText}`;
+    } else {
+      btn.classList.add('wrong');
+      options[correctIdx].classList.add('correct');
+      feedback.className = 'quiz-explanation-feedback alert alert-danger border-0 rounded-3 p-2 fs-8 mt-2';
+      feedback.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i> <strong>Not quite!</strong> ${expText}`;
+    }
+    feedback.classList.remove('d-none');
+  }
+</script>
+{% endblock %}

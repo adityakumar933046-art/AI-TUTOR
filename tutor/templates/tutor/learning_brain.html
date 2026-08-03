@@ -1,0 +1,173 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}AI Learning Brain & Skill Tree - EduVerse AI Kids{% endblock %}
+
+{% block extra_head %}
+<style>
+  .brain-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.75rem;
+  }
+
+  .skill-node-card {
+    border: 2px solid var(--card-border);
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+    background: var(--card-bg);
+    transition: all 0.25s ease;
+  }
+
+  .skill-node-card:hover {
+    transform: translateY(-4px);
+    border-color: #6366f1;
+    box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- TOP LEARNING BRAIN HERO HEADER -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-4 rounded-4 shadow text-white" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-white text-indigo d-flex align-items-center justify-content-center fw-bold shadow" style="width:56px; height:56px; font-size:1.8rem;">
+        🧠
+      </div>
+      <div>
+        <h3 class="fw-bold mb-0">Personal AI Learning Brain & Skill Tree</h3>
+        <p class="mb-0 fs-8 opacity-90">Remembers every interaction, tracks skill mastery, and adapts curriculum for {{ target_student.username }}.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN: PERMANENT LEARNING MEMORY & SKILL TREE GRAPH -->
+    <div class="col-lg-8">
+      
+      <!-- Permanent AI Learning Memory Card -->
+      <div class="brain-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-cpu-fill text-indigo me-2"></i> Learning Memory Profile</h5>
+        
+        <div class="row text-center g-3 mb-4">
+          <div class="col-md-3">
+            <div class="p-3 border rounded-3 glass-card">
+              <h5 class="fw-bold text-primary mb-0">{{ profile.preferred_learning_style }}</h5>
+              <span class="fs-9 text-muted">Detected Style</span>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 border rounded-3 glass-card">
+              <h5 class="fw-bold text-success mb-0">{{ profile.reading_level }}</h5>
+              <span class="fs-9 text-muted">Reading Level</span>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 border rounded-3 glass-card">
+              <h5 class="fw-bold text-warning mb-0">{{ profile.speaking_level }}</h5>
+              <span class="fs-9 text-muted">Speaking Level</span>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 border rounded-3 glass-card">
+              <h5 class="fw-bold text-danger mb-0">{{ profile.confidence_score|floatformat:0 }}%</h5>
+              <span class="fs-9 text-muted">Confidence Score</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KNOWLEDGE GRAPH & SKILL TREE NODE MAP -->
+      <div class="brain-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-diagram-3-fill text-primary me-2"></i> Skill Tree Graph</h5>
+        
+        <div class="row g-3">
+          {% for sp in skills %}
+            <div class="col-md-6">
+              <div class="skill-node-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="badge bg-primary-subtle text-primary rounded-pill fs-8">{{ sp.skill_node.subject }}</span>
+                  <span class="badge {% if sp.status == 'mastered' %}bg-success{% elif sp.status == 'learning' %}bg-warning text-dark{% else %}bg-secondary{% endif %} rounded-pill fs-9">
+                    {{ sp.get_status_display }}
+                  </span>
+                </div>
+                <h6 class="fw-bold mb-1">{{ sp.skill_node.name }}</h6>
+                <div class="progress rounded-pill mt-2" style="height:6px;">
+                  <div class="progress-bar bg-success rounded-pill" style="width: {{ sp.mastery_percentage }}%;"></div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ADAPTIVE CURRICULUM SEQUENCE CARD -->
+      <div class="brain-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-compass-fill text-danger me-2"></i> AI Adaptive Curriculum Sequence</h5>
+        
+        <div class="list-group list-group-flush">
+          {% for item in curriculum_list %}
+            <div class="list-group-item bg-transparent border-0 rounded-3 p-3 mb-2 glass-card">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <h6 class="fw-bold mb-0">{{ item.topic }}</h6>
+                <span class="badge bg-danger rounded-pill fs-9">{{ item.difficulty }}</span>
+              </div>
+              <p class="fs-9 text-muted mb-0">Recommended Activity: <strong>{{ item.recommended_activity }}</strong></p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: SPACED REVISION & RECOMMENDATION CARDS -->
+    <div class="col-lg-4">
+
+      <!-- Spaced Revision Calendar Card -->
+      <div class="brain-card p-4 mb-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-warning me-2"></i> Spaced Revision Schedule</h6>
+        
+        <div class="list-group list-group-flush mb-3">
+          {% for rev in due_revisions %}
+            <div class="list-group-item bg-transparent border-0 rounded-3 p-2 mb-2 glass-card">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="fw-bold fs-8">{{ rev.topic }}</span>
+                <span class="badge bg-warning-subtle text-warning rounded-pill fs-9">{{ rev.interval_days }} Day Review</span>
+              </div>
+              <small class="text-muted fs-9">Scheduled for: {{ rev.scheduled_date }}</small>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Multi-Role Recommendation Cards -->
+      <div class="brain-card p-4 mb-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb-fill text-success me-2"></i> AI Recommendations</h6>
+        
+        <div class="list-group list-group-flush">
+          {% for rec in recommendations %}
+            <div class="list-group-item bg-transparent border-0 rounded-3 p-3 mb-2 glass-card">
+              <span class="badge bg-info rounded-pill fs-9 mb-1">{{ rec.get_target_role_display }}</span>
+              <p class="fs-8 fw-semibold mb-0">{{ rec.action_text }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Achievement Prediction Insight Card -->
+      <div class="brain-card p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-trophy-fill text-purple me-2"></i> Achievement Roadmap Prediction</h6>
+        <div class="p-3 bg-purple-subtle text-dark rounded-3 border-start border-purple border-4 fs-8">
+          {{ insights.predicted_milestone }}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

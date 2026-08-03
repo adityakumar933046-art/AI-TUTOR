@@ -1,0 +1,356 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ active_passage.title }} - AI Reading Coach{% endblock %}
+
+{% block extra_head %}
+<style>
+  .reading-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.75rem;
+  }
+
+  .target-word-span {
+    display: inline-block;
+    padding: 0.25rem 0.45rem;
+    margin: 0.15rem;
+    border-radius: 0.5rem;
+    font-size: 1.35rem;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    cursor: pointer;
+  }
+
+  .target-word-span.correct {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  .target-word-span.mispronounced {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .target-word-span.skipped {
+    background: #fef9c3;
+    color: #a16207;
+  }
+
+  .target-word-span.repeated {
+    background: #ffedd5;
+    color: #c2410c;
+  }
+
+  .score-ring {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: conic-gradient(#4f46e5 calc(var(--score-val) * 1%), #e2e8f0 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .score-ring-inner {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .mode-pill-reading.active {
+    background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%) !important;
+    color: white !important;
+  }
+
+  #waveform-canvas {
+    width: 100%;
+    height: 60px;
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- HEADER & READING MODE SELECTOR -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold shadow" style="width:48px; height:48px; font-size:1.4rem;">
+        <i class="bi bi-book-half"></i>
+      </div>
+      <div>
+        <h2 class="fw-bold mb-0" style="color: var(--text-color);">{{ active_passage.title }}</h2>
+        <span class="badge bg-success rounded-pill fs-8"><i class="bi bi-star-fill me-1"></i> {{ active_passage.difficulty_level }}</span>
+        <span class="badge bg-primary rounded-pill fs-8 ms-1">{{ active_passage.subject }}</span>
+        <span class="badge bg-secondary-subtle text-secondary rounded-pill fs-8 ms-1">{{ active_passage.word_count }} Words</span>
+      </div>
+    </div>
+
+    <!-- 4 Reading Mode Selector Pills -->
+    <div class="d-none d-md-flex align-items-center gap-1 bg-success-subtle p-1 rounded-pill">
+      {% for mode_val, mode_label in mode_choices %}
+        <a href="{% url 'reading_coach_session' session_id=active_session.id %}?mode={{ mode_val }}" class="btn btn-sm rounded-pill mode-pill-reading px-3 fs-8 fw-semibold {% if active_session.mode == mode_val %}active{% endif %}">
+          {{ mode_label }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN: LIVE PASSAGE & MIC CONTROL -->
+    <div class="col-lg-8">
+      
+      <!-- TARGET PASSAGE DISPLAY & LIVE WORD HIGHLIGHTER -->
+      <div class="reading-card p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+          <span class="fw-bold fs-7 text-muted"><i class="bi bi-body-text me-1 text-primary"></i> Passage Text (Read Aloud)</span>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="speakPassageOriginal()">
+              <i class="bi bi-volume-up-fill me-1"></i> Listen AI Teacher
+            </button>
+          </div>
+        </div>
+
+        <div class="p-3 mb-3 leading-relaxed" id="passage-container" style="line-height: 2.2;">
+          {% for word in active_passage.content_text.split %}
+            <span class="target-word-span" id="word-span-{{ forloop.counter0 }}" onclick="speakSingleWord('{{ word }}')">{{ word }}</span>
+          {% endfor %}
+        </div>
+
+        <!-- Waveform Visualizer Canvas -->
+        <canvas id="waveform-canvas" class="mb-3"></canvas>
+
+        <!-- RECORDING CONTROL BAR -->
+        <div class="d-flex align-items-center justify-content-center gap-3 pt-2">
+          <button id="mic-btn" class="btn btn-danger btn-lg rounded-circle p-3 shadow-lg" onclick="toggleReadingRecord()" style="width:70px; height:70px;">
+            <i class="bi bi-mic-fill display-6"></i>
+          </button>
+        </div>
+        <div class="text-center mt-2">
+          <span id="recording-status-text" class="fw-semibold fs-7 text-muted">Tap mic and start reading aloud!</span>
+        </div>
+      </div>
+
+      <!-- GEMINI ENCOURAGING FEEDBACK CARD -->
+      <div id="feedback-card" class="reading-card p-4 mb-4 d-none">
+        <h5 class="fw-bold mb-3"><i class="bi bi-award-fill text-warning me-2"></i> Sparky AI Teacher Feedback</h5>
+        <div class="alert alert-success border-0 rounded-3 p-3 shadow-sm fs-7" id="gemini-feedback-text"></div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: SCORE DASHBOARD & MULTI-MODAL SHORTCUTS -->
+    <div class="col-lg-4">
+      
+      <!-- Score Breakdown Dashboard Card -->
+      <div class="reading-card p-4 mb-4 text-center">
+        <h6 class="fw-bold mb-3"><i class="bi bi-speedometer2 text-primary me-2"></i> Reading Score Dashboard</h6>
+        
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <div class="score-ring" id="accuracy-ring" style="--score-val: 0;">
+              <div class="score-ring-inner">
+                <span class="fw-bold fs-5 text-primary" id="accuracy-val">0%</span>
+                <span class="fs-9 text-muted">Accuracy</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="score-ring" id="fluency-ring" style="--score-val: 0;">
+              <div class="score-ring-inner">
+                <span class="fw-bold fs-5 text-success" id="fluency-val">0%</span>
+                <span class="fs-9 text-muted">Fluency</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-around pt-2 border-top">
+          <div>
+            <div class="fw-bold text-dark fs-6" id="wpm-val">0</div>
+            <span class="fs-9 text-muted">Words / Min</span>
+          </div>
+          <div>
+            <div class="fw-bold text-warning fs-6" id="xp-val">+0</div>
+            <span class="fs-9 text-muted">Reading XP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multi-Modal Integration Card -->
+      <div class="reading-card p-4 mb-4 text-center">
+        <div class="sparky-avatar mx-auto mb-2" style="width:48px; height:48px; font-size:1.5rem; background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="bi bi-robot"></i>
+        </div>
+        <h6 class="fw-bold mb-1">Reading Integration Tools</h6>
+        <p class="text-muted fs-8 mb-3">Discuss this story across all EduVerse AI tools!</p>
+        
+        <div class="d-grid gap-2">
+          <a href="{% url 'voice_tutor_session' session_id=active_session.chat_session.id %}" class="btn btn-danger py-2 fs-7 shadow-sm rounded-pill">
+            <i class="bi bi-mic me-1"></i> Discuss in Voice Tutor
+          </a>
+          <a href="{% url 'chat_tutor_session' session_id=active_session.chat_session.id %}" class="btn btn-edu-primary py-2 fs-7 shadow-sm">
+            <i class="bi bi-chat-left-text me-1"></i> Ask in Chat
+          </a>
+          <a href="{% url 'visual_learning' %}" class="btn btn-info text-white py-2 fs-7 shadow-sm rounded-pill fw-semibold">
+            <i class="bi bi-diagram-3 me-1"></i> Visualize Concept
+          </a>
+          <a href="{% url 'whiteboard' %}" class="btn btn-warning text-dark py-2 fs-7 shadow-sm rounded-pill fw-semibold">
+            <i class="bi bi-easel me-1"></i> Draw on Whiteboard
+          </a>
+        </div>
+      </div>
+
+      <!-- Reading Passages Library Card -->
+      <div class="reading-card p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-collection-play-fill text-success me-2"></i> Reading Library</h6>
+        {% if passages %}
+          <div class="list-group list-group-flush">
+            {% for p in passages %}
+              <a href="{% url 'reading_passage_view' passage_id=p.id %}" class="list-group-item list-group-item-action bg-transparent border-0 rounded-3 p-2 text-decoration-none glass-card mb-2">
+                <div class="fw-bold fs-7 text-dark text-truncate">{{ p.title }}</div>
+                <span class="fs-8 text-muted"><span class="badge bg-success-subtle text-success py-0 me-1">{{ p.difficulty_level }}</span> {{ p.subject }}</span>
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let recognition;
+  let isRecording = false;
+  let startTime;
+  let spokenText = "";
+  const sessionId = {{ active_session.id }};
+  const targetText = `{{ active_passage.content_text|escapejs }}`;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRec();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript + " ";
+        }
+        spokenText = transcript.trim();
+        liveHighlightWords(spokenText);
+      };
+
+      recognition.onend = () => {
+        if (isRecording) {
+          submitReadingAttempt();
+        }
+      };
+    }
+  });
+
+  function toggleReadingRecord() {
+    const btn = document.getElementById('mic-btn');
+    const status = document.getElementById('recording-status-text');
+
+    if (!isRecording) {
+      isRecording = true;
+      startTime = new Date();
+      spokenText = "";
+      btn.className = "btn btn-warning btn-lg rounded-circle p-3 shadow-lg pulse";
+      status.innerText = "Reading... Speak clearly!";
+      if (recognition) recognition.start();
+    } else {
+      isRecording = false;
+      btn.className = "btn btn-danger btn-lg rounded-circle p-3 shadow-lg";
+      status.innerText = "Processing performance...";
+      if (recognition) recognition.stop();
+      submitReadingAttempt();
+    }
+  }
+
+  function liveHighlightWords(spoken) {
+    const targetWords = targetText.split(/\s+/);
+    const spokenWords = spoken.toLowerCase().split(/\s+/);
+
+    targetWords.forEach((tw, idx) => {
+      const cleanTw = tw.replace(/[^\w]/g, '').toLowerCase();
+      const el = document.getElementById(`word-span-${idx}`);
+      if (el) {
+        if (spokenWords.includes(cleanTw)) {
+          el.className = 'target-word-span correct';
+        }
+      }
+    });
+  }
+
+  async function submitReadingAttempt() {
+    const duration = (new Date() - startTime) / 1000.0;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    const res = await fetch(`/tutor/reading/session/${sessionId}/submit/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ spoken_transcript: spokenText, duration_seconds: duration })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('accuracy-val').innerText = `${data.accuracy_score}%`;
+      document.getElementById('accuracy-ring').style.setProperty('--score-val', data.accuracy_score);
+
+      document.getElementById('fluency-val').innerText = `${data.fluency_score}%`;
+      document.getElementById('fluency-ring').style.setProperty('--score-val', data.fluency_score);
+
+      document.getElementById('wpm-val').innerText = data.wpm;
+      document.getElementById('xp-val').innerText = `+${data.xp_earned}`;
+
+      // Show Feedback Card
+      const fbCard = document.getElementById('feedback-card');
+      document.getElementById('gemini-feedback-text').innerText = data.feedback;
+      fbCard.classList.remove('d-none');
+
+      // Highlight Final Alignment
+      data.alignment.forEach((item, idx) => {
+        const el = document.getElementById(`word-span-${idx}`);
+        if (el) {
+          el.className = `target-word-span ${item.status}`;
+        }
+      });
+    }
+  }
+
+  function speakPassageOriginal() {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(targetText);
+    utt.rate = 0.9;
+    window.speechSynthesis.speak(utt);
+  }
+
+  function speakSingleWord(w) {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(w);
+    utt.rate = 0.8;
+    window.speechSynthesis.speak(utt);
+  }
+</script>
+{% endblock %}

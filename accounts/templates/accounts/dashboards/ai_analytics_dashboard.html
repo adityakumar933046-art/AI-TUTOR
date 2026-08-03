@@ -1,0 +1,164 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}AI Usage Analytics & Performance Intelligence - EduVerse AI Kids{% endblock %}
+
+{% block extra_head %}
+<style>
+  .analytics-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- HERO BANNER -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-4 rounded-4 shadow text-white" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-white text-emerald d-flex align-items-center justify-content-center fw-bold shadow" style="width:56px; height:56px; font-size:1.8rem;">
+        📊
+      </div>
+      <div>
+        <h3 class="fw-bold mb-0">AI Usage Analytics & Performance Intelligence</h3>
+        <p class="mb-0 fs-8 opacity-90">Real-time Gemini API telemetry, latency percentiles (p50/p95), feature usage distribution & hardware monitoring.</p>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'analytics_export_api' %}?format=csv" class="btn btn-light shadow px-3 fw-semibold rounded-pill">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+      </a>
+      <a href="{% url 'analytics_export_api' %}?format=json" class="btn btn-outline-light shadow px-3 fw-semibold rounded-pill">
+        <i class="bi bi-filetype-json me-1"></i> Export JSON
+      </a>
+      <a href="{% url 'admin_hub' %}" class="btn btn-dark shadow px-3 fw-semibold rounded-pill">
+        <i class="bi bi-shield-lock me-1"></i> Admin Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- KEY PERFORMANCE INDICATORS -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-3">
+      <div class="analytics-card p-4 text-center">
+        <div class="text-muted fs-8 fw-semibold mb-1">Total AI Requests</div>
+        <h2 class="fw-bold text-primary mb-0">{{ perf.total_requests }}</h2>
+        <small class="text-success fs-9"><i class="bi bi-arrow-up-right me-1"></i> Gemini 1.5 Flash</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="analytics-card p-4 text-center">
+        <div class="text-muted fs-8 fw-semibold mb-1">Average Latency</div>
+        <h2 class="fw-bold text-success mb-0">{{ perf.avg_latency_ms }} ms</h2>
+        <small class="text-muted fs-9">p50: {{ perf.median_latency_ms }} ms</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="analytics-card p-4 text-center">
+        <div class="text-muted fs-8 fw-semibold mb-1">95th Percentile Latency</div>
+        <h2 class="fw-bold text-warning mb-0">{{ perf.p95_latency_ms }} ms</h2>
+        <small class="text-muted fs-9">SLA Goal: &lt; 1000 ms</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="analytics-card p-4 text-center">
+        <div class="text-muted fs-8 fw-semibold mb-1">Success Rate</div>
+        <h2 class="fw-bold text-info mb-0">{{ perf.success_rate_pct }}%</h2>
+        <small class="text-danger fs-9">Error Rate: {{ perf.error_rate_pct }}%</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN: FEATURE BREAKDOWN & SYSTEM TELEMETRY -->
+    <div class="col-lg-6">
+      <!-- FEATURE USAGE DISTRIBUTION -->
+      <div class="analytics-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-emerald me-2"></i> Feature Usage Distribution</h5>
+        <div class="list-group list-group-flush fs-8">
+          {% for f in feature_breakdown %}
+            <div class="list-group-item bg-transparent d-flex align-items-center justify-content-between px-0">
+              <span class="fw-semibold text-secondary">{{ f.feature_name }}</span>
+              <span class="badge bg-emerald rounded-pill px-3 fs-9" style="background:#10b981;">{{ f.count }} calls</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- SYSTEM HARDWARE & QUEUE TELEMETRY -->
+      <div class="analytics-card p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-cpu-fill text-indigo me-2"></i> System Hardware & Queue Health</h5>
+        <div class="row g-3 text-center fs-8">
+          <div class="col-4">
+            <div class="p-3 rounded-4 bg-light">
+              <small class="text-muted d-block mb-1">CPU Usage</small>
+              <strong class="text-dark fs-6">{{ metrics.cpu_usage_pct }}%</strong>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-3 rounded-4 bg-light">
+              <small class="text-muted d-block mb-1">Memory Usage</small>
+              <strong class="text-dark fs-6">{{ metrics.memory_usage_pct }}%</strong>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-3 rounded-4 bg-light">
+              <small class="text-muted d-block mb-1">Redis Queue</small>
+              <strong class="text-success fs-6">{{ metrics.redis_status }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: RECENT AI LOGS TABLE -->
+    <div class="col-lg-6">
+      <div class="analytics-card p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-activity text-primary me-2"></i> Live AI Telemetry Logs</h5>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 fs-9">
+            <thead>
+              <tr>
+                <th>Module</th>
+                <th>Latency</th>
+                <th>Status</th>
+                <th>User</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in recent_logs %}
+                <tr>
+                  <td class="fw-semibold text-primary">{{ log.module_name }}</td>
+                  <td>{{ log.response_time_ms }} ms</td>
+                  <td>
+                    {% if log.is_success %}
+                      <span class="badge bg-success rounded-pill">200 OK</span>
+                    {% else %}
+                      <span class="badge bg-danger rounded-pill">Error</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted">{% if log.user %}{{ log.user.username }}{% else %}Guest{% endif %}</td>
+                  <td class="text-muted">{{ log.timestamp|date:"H:i:s" }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-4">No AI request telemetry logged yet. Live telemetry will stream automatically!</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

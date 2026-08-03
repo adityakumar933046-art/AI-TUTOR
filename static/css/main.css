@@ -1,0 +1,164 @@
+/* EduVerse AI Kids - Design System */
+
+:root {
+  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-color: #f8fafc;
+  --text-color: #1e293b;
+  --text-muted: #64748b;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(255, 255, 255, 0.6);
+  --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --input-border: #cbd5e1;
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --primary-btn: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --primary-btn-hover: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+  --secondary-btn: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  --accent-color: #f59e0b;
+}
+
+[data-theme="dark"] {
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  --bg-color: #090d16;
+  --text-color: #f8fafc;
+  --text-muted: #94a3b8;
+  --card-bg: rgba(30, 41, 59, 0.85);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  --input-bg: rgba(15, 23, 42, 0.8);
+  --input-border: #334155;
+  --nav-bg: rgba(15, 23, 42, 0.85);
+  --primary-btn: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  --primary-btn-hover: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+}
+
+body {
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.hero-background {
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: 1.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+}
+
+.glass-input {
+  background: var(--input-bg) !important;
+  border: 1.5px solid var(--input-border) !important;
+  color: var(--text-color) !important;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.glass-input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Custom Buttons */
+.btn-edu-primary {
+  background: var(--primary-btn);
+  color: #ffffff !important;
+  border: none;
+  font-weight: 600;
+  padding: 0.75rem 1.75rem;
+  border-radius: 50rem;
+  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-edu-primary:hover {
+  background: var(--primary-btn-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 25px rgba(99, 102, 241, 0.4);
+}
+
+.btn-edu-secondary {
+  background: var(--secondary-btn);
+  color: #ffffff !important;
+  border: none;
+  font-weight: 600;
+  padding: 0.75rem 1.75rem;
+  border-radius: 50rem;
+  box-shadow: 0 10px 20px rgba(236, 72, 153, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-edu-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 25px rgba(236, 72, 153, 0.4);
+}
+
+.btn-google {
+  background: #ffffff;
+  color: #374151 !important;
+  border: 1px solid #e5e7eb;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.btn-google:hover {
+  background: #f9fafb;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Header & Navbar */
+.navbar-custom {
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.navbar-brand-logo {
+  font-weight: 800;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Animations */
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(3deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+.floating-element {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Password Strength Indicator */
+.strength-bar {
+  height: 6px;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}

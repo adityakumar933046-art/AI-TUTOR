@@ -1,0 +1,546 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Voice Tutor - Sparky AI | EduVerse AI Kids{% endblock %}
+
+{% block extra_head %}
+<style>
+  .voice-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 2rem;
+  }
+
+  .sparky-avatar-hero {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b 0%, #ec4899 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 3.5rem;
+    box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+    position: relative;
+    transition: transform 0.3s ease;
+  }
+
+  .sparky-avatar-hero.speaking {
+    animation: pulse-ring 1.5s infinite ease-in-out;
+  }
+
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.6); }
+    70% { box-shadow: 0 0 0 25px rgba(236, 72, 153, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+  }
+
+  .mic-button-hero {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    font-size: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+    transition: all 0.25s ease;
+    cursor: pointer;
+  }
+
+  .mic-button-hero:hover {
+    transform: scale(1.08);
+    box-shadow: 0 14px 35px rgba(79, 70, 229, 0.5);
+  }
+
+  .mic-button-hero.listening {
+    background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%) !important;
+    animation: mic-pulse 1.2s infinite alternate;
+  }
+
+  @keyframes mic-pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+    100% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+  }
+
+  #wave-canvas {
+    width: 100%;
+    height: 90px;
+    border-radius: 1rem;
+    background: rgba(15, 23, 42, 0.1);
+  }
+
+  .transcript-timeline {
+    max-height: 280px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  .bubble-student {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+    max-width: 80%;
+    margin-left: auto;
+  }
+
+  .bubble-ai {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-color);
+    border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+    max-width: 85%;
+  }
+
+  .speed-pill.active {
+    background: #4f46e5 !important;
+    color: white !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  
+  <!-- Header Bar -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{% url 'chat_tutor_session' session_id=active_session.id %}" class="btn btn-outline-secondary rounded-circle p-2" title="Switch to Text Chat">
+        <i class="bi bi-chat-left-text fs-5"></i>
+      </a>
+      <div>
+        <h4 class="fw-bold mb-0" style="color: var(--text-color);"><i class="bi bi-mic-fill text-danger me-2"></i> Voice AI Tutor</h4>
+        <span class="badge bg-warning text-dark rounded-pill fs-8">
+          <i class="bi bi-book me-1"></i> {{ active_session.subject }} Focus
+        </span>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <!-- Mode Toggle Dropdown -->
+      <select id="voice-mode-select" class="form-select form-select-sm rounded-pill glass-input px-3">
+        <option value="push_to_talk">Push to Talk</option>
+        <option value="hold_to_talk">Hold to Talk</option>
+        <option value="continuous">Continuous Conversation</option>
+      </select>
+
+      <!-- Settings Button -->
+      <button class="btn btn-outline-secondary rounded-circle p-2" data-bs-toggle="modal" data-bs-target="#voiceSettingsModal" title="Voice Settings">
+        <i class="bi bi-sliders fs-5"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- MAIN VOICE INTERACTIVE CARD -->
+    <div class="col-lg-7">
+      <div class="voice-card p-4 p-md-5 text-center position-relative overflow-hidden">
+
+        <!-- Sparky Avatar Hero -->
+        <div class="sparky-avatar-hero mx-auto mb-3" id="sparky-hero-avatar">
+          <i class="bi bi-robot"></i>
+        </div>
+
+        <h3 class="fw-bold mb-1" id="tutor-status-title" style="color: var(--text-color);">Sparky is Ready!</h3>
+        <p class="text-muted fs-7 mb-4" id="tutor-status-subtitle">Click the microphone button below and talk to Sparky</p>
+
+        <!-- Live Waveforms Canvas -->
+        <div class="mb-4">
+          <canvas id="wave-canvas"></canvas>
+        </div>
+
+        <!-- Giant Microphone Button -->
+        <div class="d-flex align-items-center justify-content-center gap-4 mb-4">
+          <button id="mic-action-btn" class="mic-button-hero" onclick="toggleMicrophone()">
+            <i class="bi bi-mic-fill" id="mic-icon"></i>
+          </button>
+        </div>
+
+        <!-- Voice Action Buttons -->
+        <div class="d-flex flex-wrap align-items-center justify-content-center gap-2">
+          <button id="stop-speech-btn" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm d-none" onclick="stopAiSpeech()">
+            <i class="bi bi-stop-circle me-1"></i> Stop AI Speaking
+          </button>
+          <button id="replay-btn" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="replayLastAiResponse()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Replay Answer
+          </button>
+          <button id="mute-btn" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="toggleMute()">
+            <i class="bi bi-volume-up me-1" id="mute-icon"></i> Audio On
+          </button>
+        </div>
+
+        <!-- Speed Selector Pills -->
+        <div class="d-flex align-items-center justify-content-center gap-2 mt-4 pt-2 border-top">
+          <span class="fs-8 text-muted fw-semibold me-1">Speed:</span>
+          <button class="btn btn-sm btn-outline-secondary rounded-pill speed-pill active" onclick="setSpeed(1.0, this)">1.0x</button>
+          <button class="btn btn-sm btn-outline-secondary rounded-pill speed-pill" onclick="setSpeed(1.25, this)">1.25x</button>
+          <button class="btn btn-sm btn-outline-secondary rounded-pill speed-pill" onclick="setSpeed(1.5, this)">1.5x</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT TIMELINE: Live Voice Transcript -->
+    <div class="col-lg-5">
+      <div class="voice-card p-4 h-100 d-flex flex-direction-column">
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+          <h5 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-primary"></i> Live Voice Transcript</h5>
+          <span class="badge bg-primary-subtle text-primary rounded-pill px-2" id="transcript-count-badge">{{ voice_transcripts|length }} Turns</span>
+        </div>
+
+        <div id="transcript-box" class="transcript-timeline flex-grow-1 pe-2">
+          {% if not voice_transcripts %}
+            <div id="transcript-empty-prompt" class="text-center py-5 text-muted">
+              <i class="bi bi-soundwave fs-1 text-primary mb-2 d-block"></i>
+              <p class="fs-7 mb-0">Your voice conversation history will appear here live in real-time.</p>
+            </div>
+          {% endif %}
+
+          {% for t in voice_transcripts %}
+            <div class="d-flex mb-3 {% if t.speaker == 'student' %}justify-content-end{% else %}justify-content-start{% endif %}">
+              <div class="p-3 {% if t.speaker == 'student' %}bubble-student{% else %}bubble-ai{% endif %} shadow-sm fs-7">
+                <div class="fw-bold mb-1 opacity-90 fs-8">{% if t.speaker == 'student' %}You (Spoken){% else %}Sparky AI Teacher{% endif %}</div>
+                <div>{{ t.transcript_text }}</div>
+                <div class="text-end opacity-75 fs-9 mt-1">{{ t.timestamp|date:"H:i" }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- VOICE SETTINGS MODAL -->
+<div class="modal fade" id="voiceSettingsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-card border-0 p-3">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-sliders text-primary me-2"></i> Voice & Language Settings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="voice-settings-form" onsubmit="saveVoiceSettings(event)">
+          
+          <div class="mb-3">
+            <label class="form-label fw-semibold fs-7">Tutor Language</label>
+            <select id="setting-language" class="form-select rounded-pill glass-input">
+              <option value="en-US" {% if voice_settings.language == 'en-US' %}selected{% endif %}>English (United States)</option>
+              <option value="hi-IN" {% if voice_settings.language == 'hi-IN' %}selected{% endif %}>Hindi (भारत)</option>
+              <option value="en-IN" {% if voice_settings.language == 'en-IN' %}selected{% endif %}>Hinglish / Indian English</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold fs-7">Teacher Voice Type</label>
+            <select id="setting-gender" class="form-select rounded-pill glass-input">
+              <option value="Female" {% if voice_settings.voice_gender == 'Female' %}selected{% endif %}>Female (Friendly Teacher)</option>
+              <option value="Male" {% if voice_settings.voice_gender == 'Male' %}selected{% endif %}>Male (Encouraging Mentor)</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold fs-7">Pitch Level</label>
+            <input type="range" class="form-range" id="setting-pitch" min="0.5" max="1.5" step="0.1" value="{{ voice_settings.pitch }}">
+          </div>
+
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="setting-autolisten" {% if voice_settings.auto_listen %}checked{% endif %}>
+            <label class="form-check-label fs-7 fw-semibold" for="setting-autolisten">Auto-Listen after Sparky finishes speaking</label>
+          </div>
+
+          <button type="submit" class="btn btn-edu-primary w-100 py-2 shadow">Save Settings</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let recognition = null;
+  let isListening = false;
+  let synth = window.speechSynthesis;
+  let audioContext = null;
+  let analyser = null;
+  let canvas, ctx;
+  let animationId = null;
+  let isMuted = false;
+  let currentSpeed = {{ voice_settings.speaking_rate }};
+  let currentPitch = {{ voice_settings.pitch }};
+  let currentLang = "{{ voice_settings.language }}";
+  let lastAiResponseText = "";
+  const sessionId = {{ active_session.id }};
+
+  document.addEventListener('DOMContentLoaded', () => {
+    canvas = document.getElementById('wave-canvas');
+    ctx = canvas.getContext('2d');
+    resizeCanvas();
+    drawIdleWave();
+    initSpeechRecognition();
+  });
+
+  function resizeCanvas() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = 90;
+  }
+
+  // Web Speech API Initialization
+  function initSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Web Speech API is not supported in this browser. Please use Chrome, Edge, or Safari.");
+      return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = currentLang;
+
+    recognition.onstart = () => {
+      isListening = true;
+      // Stop AI speech immediately if student starts speaking (Interruption Handling)
+      if (synth.speaking) synth.cancel();
+
+      document.getElementById('mic-action-btn').classList.add('listening');
+      document.getElementById('sparky-hero-avatar').classList.remove('speaking');
+      document.getElementById('tutor-status-title').innerText = "Listening to You...";
+      document.getElementById('tutor-status-subtitle').innerText = "Speak now — Sparky is listening!";
+      drawActiveWave('student');
+    };
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      let final = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          final += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+
+      if (final) {
+        processSpokenTurn(final);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      stopListeningState();
+      document.getElementById('tutor-status-title').innerText = "Microphone Error";
+      document.getElementById('tutor-status-subtitle').innerText = "Error: " + event.error;
+    };
+
+    recognition.onend = () => {
+      stopListeningState();
+    };
+  }
+
+  function toggleMicrophone() {
+    if (isListening) {
+      recognition.stop();
+    } else {
+      // Cancel AI speech if active
+      if (synth.speaking) synth.cancel();
+      recognition.lang = currentLang;
+      recognition.start();
+    }
+  }
+
+  function stopListeningState() {
+    isListening = false;
+    document.getElementById('mic-action-btn').classList.remove('listening');
+    if (!synth.speaking) {
+      document.getElementById('tutor-status-title').innerText = "Sparky is Ready!";
+      document.getElementById('tutor-status-subtitle').innerText = "Click the mic button to talk";
+      drawIdleWave();
+    }
+  }
+
+  // Send Spoken Turn to Backend via AJAX
+  async function processSpokenTurn(text) {
+    appendTranscriptBubble('student', text);
+
+    document.getElementById('tutor-status-title').innerText = "Sparky is Thinking...";
+    document.getElementById('tutor-status-subtitle').innerText = "Analyzing your question...";
+
+    try {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const response = await fetch(`/tutor/voice/${sessionId}/send/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+          spoken_text: text,
+          language: currentLang,
+          mode: document.getElementById('voice-mode-select').value
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        lastAiResponseText = data.ai_response;
+        appendTranscriptBubble('ai_tutor', data.ai_response);
+        speakAiResponse(data.ai_response);
+      }
+    } catch (err) {
+      document.getElementById('tutor-status-title').innerText = "Connection Error";
+      document.getElementById('tutor-status-subtitle').innerText = "Could not reach AI Tutor server.";
+    }
+  }
+
+  // Text-to-Speech Output
+  function speakAiResponse(text) {
+    if (isMuted) return;
+
+    synth.cancel(); // Stop prior audio
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = currentSpeed;
+    utterance.pitch = currentPitch;
+    utterance.lang = currentLang;
+
+    utterance.onstart = () => {
+      document.getElementById('sparky-hero-avatar').classList.add('speaking');
+      document.getElementById('stop-speech-btn').classList.remove('d-none');
+      document.getElementById('tutor-status-title').innerText = "Sparky is Speaking 🔊";
+      document.getElementById('tutor-status-subtitle').innerText = "Listen closely to the teacher!";
+      drawActiveWave('ai');
+    };
+
+    utterance.onend = () => {
+      document.getElementById('sparky-hero-avatar').classList.remove('speaking');
+      document.getElementById('stop-speech-btn').classList.add('d-none');
+      document.getElementById('tutor-status-title').innerText = "Sparky is Ready!";
+      document.getElementById('tutor-status-subtitle').innerText = "Click the mic button to speak again";
+      drawIdleWave();
+
+      // Continuous mode check
+      const mode = document.getElementById('voice-mode-select').value;
+      if (mode === 'continuous' && !isListening) {
+        setTimeout(() => { recognition.start(); }, 800);
+      }
+    };
+
+    synth.speak(utterance);
+  }
+
+  function stopAiSpeech() {
+    if (synth.speaking) synth.cancel();
+    document.getElementById('sparky-hero-avatar').classList.remove('speaking');
+    document.getElementById('stop-speech-btn').classList.add('d-none');
+    drawIdleWave();
+  }
+
+  function replayLastAiResponse() {
+    if (lastAiResponseText) speakAiResponse(lastAiResponseText);
+  }
+
+  function toggleMute() {
+    isMuted = !isMuted;
+    if (isMuted && synth.speaking) synth.cancel();
+    const btn = document.getElementById('mute-btn');
+    btn.innerHTML = isMuted ? '<i class="bi bi-volume-mute me-1"></i> Audio Muted' : '<i class="bi bi-volume-up me-1"></i> Audio On';
+  }
+
+  function setSpeed(spd, btn) {
+    currentSpeed = spd;
+    document.querySelectorAll('.speed-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // Wave Visualizers
+  function drawIdleWave() {
+    if (animationId) cancelAnimationFrame(animationId);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.strokeStyle = "rgba(99, 102, 241, 0.3)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function drawActiveWave(speaker) {
+    if (animationId) cancelAnimationFrame(animationId);
+    let step = 0;
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = speaker === 'student' ? "#ec4899" : "#6366f1";
+
+      const height = canvas.height;
+      const width = canvas.width;
+      ctx.moveTo(0, height / 2);
+
+      for (let i = 0; i < width; i++) {
+        const y = Math.sin(i * 0.03 + step) * (speaker === 'student' ? 22 : 18) + height / 2;
+        ctx.lineTo(i, y);
+      }
+      ctx.stroke();
+      step += 0.08;
+      animationId = requestAnimationFrame(animate);
+    }
+    animate();
+  }
+
+  function appendTranscriptBubble(speaker, text) {
+    const box = document.getElementById('transcript-box');
+    const emptyPrompt = document.getElementById('transcript-empty-prompt');
+    if (emptyPrompt) emptyPrompt.remove();
+
+    const isStudent = speaker === 'student';
+    const div = document.createElement('div');
+    div.className = `d-flex mb-3 ${isStudent ? 'justify-content-end' : 'justify-content-start'}`;
+    div.innerHTML = `
+      <div class="p-3 ${isStudent ? 'bubble-student' : 'bubble-ai'} shadow-sm fs-7">
+        <div class="fw-bold mb-1 opacity-90 fs-8">${isStudent ? 'You (Spoken)' : 'Sparky AI Teacher'}</div>
+        <div>${escapeHtml(text)}</div>
+        <div class="text-end opacity-75 fs-9 mt-1">Just now</div>
+      </div>
+    `;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // Save Voice Settings
+  async function saveVoiceSettings(e) {
+    e.preventDefault();
+    currentLang = document.getElementById('setting-language').value;
+    currentPitch = parseFloat(document.getElementById('setting-pitch').value);
+    const gender = document.getElementById('setting-gender').value;
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    await fetch('/tutor/voice/settings/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({
+        language: currentLang,
+        voice_gender: gender,
+        pitch: currentPitch,
+        speaking_rate: currentSpeed,
+        auto_listen: document.getElementById('setting-autolisten').checked
+      })
+    });
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('voiceSettingsModal'));
+    modal.hide();
+  }
+</script>
+{% endblock %}

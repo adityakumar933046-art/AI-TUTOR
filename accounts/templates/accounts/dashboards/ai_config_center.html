@@ -1,0 +1,280 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}AI Configuration Center & Prompt Studio - EduVerse AI Kids{% endblock %}
+
+{% block extra_head %}
+<style>
+  .config-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.5rem;
+  }
+
+  .prompt-textarea {
+    font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    background: rgba(15, 23, 42, 0.6);
+    color: #38bdf8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- HERO BANNER -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-4 rounded-4 shadow text-white" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-white text-indigo d-flex align-items-center justify-content-center fw-bold shadow" style="width:56px; height:56px; font-size:1.8rem;">
+        ⚡
+      </div>
+      <div>
+        <h3 class="fw-bold mb-0">AI Configuration Center & Prompt Studio</h3>
+        <p class="mb-0 fs-8 opacity-90">Manage Gemini API models, tune hyperparameters, edit module prompts, test live outputs & rollback versions.</p>
+      </div>
+    </div>
+    <a href="{% url 'admin_hub' %}" class="btn btn-light shadow px-3 fw-semibold rounded-pill">
+      <i class="bi bi-shield-lock me-1"></i> Admin Dashboard
+    </a>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN: SYSTEM AI PARAMETERS -->
+    <div class="col-lg-5">
+      <div class="config-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-sliders text-primary me-2"></i> Active Model Hyperparameters</h5>
+
+        <form id="configForm">
+          <div class="mb-3">
+            <label class="form-label fs-8 fw-semibold">AI Provider</label>
+            <input type="text" class="form-control rounded-pill glass-input fs-8" name="provider" value="{{ config.provider }}" readonly>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fs-8 fw-semibold">Model Selection</label>
+            <select class="form-select rounded-pill glass-input fs-8" name="model_name">
+              <option value="gemini-1.5-flash" {% if config.model_name == 'gemini-1.5-flash' %}selected{% endif %}>gemini-1.5-flash (Fast & Recommended)</option>
+              <option value="gemini-1.5-pro" {% if config.model_name == 'gemini-1.5-pro' %}selected{% endif %}>gemini-1.5-pro (High Reasoning)</option>
+              <option value="gemini-pro" {% if config.model_name == 'gemini-pro' %}selected{% endif %}>gemini-pro (Legacy)</option>
+            </select>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fs-8 fw-semibold">Temperature ({{ config.temperature }})</label>
+              <input type="number" step="0.05" min="0.0" max="1.0" class="form-control rounded-pill glass-input fs-8" name="temperature" value="{{ config.temperature }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label fs-8 fw-semibold">Top P ({{ config.top_p }})</label>
+              <input type="number" step="0.05" min="0.0" max="1.0" class="form-control rounded-pill glass-input fs-8" name="top_p" value="{{ config.top_p }}">
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fs-8 fw-semibold">Safety Level</label>
+              <select class="form-select rounded-pill glass-input fs-8" name="safety_level">
+                <option value="Strict" {% if config.safety_level == 'Strict' %}selected{% endif %}>Strict (Child Safe)</option>
+                <option value="Balanced" {% if config.safety_level == 'Balanced' %}selected{% endif %}>Balanced</option>
+                <option value="Relaxed" {% if config.safety_level == 'Relaxed' %}selected{% endif %}>Relaxed</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fs-8 fw-semibold">Student Tone</label>
+              <select class="form-select rounded-pill glass-input fs-8" name="default_student_tone">
+                <option value="Friendly" {% if config.default_student_tone == 'Friendly' %}selected{% endif %}>Friendly & Encouraging</option>
+                <option value="Socratic" {% if config.default_student_tone == 'Socratic' %}selected{% endif %}>Socratic Teacher</option>
+                <option value="Storyteller" {% if config.default_student_tone == 'Storyteller' %}selected{% endif %}>Storyteller</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="button" onclick="updateConfig()" class="btn btn-primary w-100 rounded-pill fw-semibold shadow-sm">
+            <i class="bi bi-check-circle me-1"></i> Update Active Configuration
+          </button>
+        </form>
+      </div>
+
+      <!-- AUDIT LOG HISTORY -->
+      <div class="config-card p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-secondary me-2"></i> Configuration Change Log</h6>
+        <div class="list-group list-group-flush fs-9">
+          {% for h in history %}
+            <div class="list-group-item bg-transparent px-0">
+              <div class="d-flex justify-content-between">
+                <strong class="text-primary">{{ h.field_name }}</strong>
+                <small class="text-muted">{{ h.timestamp|date:"H:i:s" }}</small>
+              </div>
+              <div class="text-muted">{{ h.old_value }} ➔ <span class="text-success fw-bold">{{ h.new_value }}</span></div>
+            </div>
+          {% empty %}
+            <p class="text-muted fs-9 mb-0">No configuration changes logged yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: PROMPT MANAGEMENT & LIVE TESTING STUDIO -->
+    <div class="col-lg-7">
+      <div class="config-card p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-code-square text-indigo me-2"></i> Prompt Template Studio</h5>
+          {% if active_prompt %}
+            <span class="badge bg-success rounded-pill">v{{ active_prompt.current_version_number }} Published</span>
+          {% endif %}
+        </div>
+
+        {% if active_prompt %}
+          <div class="mb-3">
+            <label class="form-label fs-8 fw-semibold">Select Module Template</label>
+            <select class="form-select rounded-pill glass-input fs-8" id="promptSelect">
+              {% for p in prompts %}
+                <option value="{{ p.id }}" {% if p.id == active_prompt.id %}selected{% endif %}>[{{ p.category.name }}] {{ p.name }} (v{{ p.current_version_number }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fs-8 fw-semibold">System Prompt Body (LaTeX & Socratic Rules)</label>
+            <textarea id="promptBody" class="form-control prompt-textarea p-3 rounded-4" rows="8">{% if active_versions %}{{ active_versions.0.prompt_body }}{% endif %}</textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fs-8 fw-semibold">Change Summary</label>
+            <input type="text" id="changeLog" class="form-control rounded-pill glass-input fs-8" placeholder="e.g., Tune Socratic math questioning style">
+          </div>
+
+          <div class="d-flex gap-2">
+            <button onclick="savePromptVersion()" class="btn btn-success flex-fill rounded-pill fw-semibold shadow-sm">
+              <i class="bi bi-cloud-arrow-up-fill me-1"></i> Save & Publish New Version
+            </button>
+            <button onclick="rollbackPrompt()" class="btn btn-outline-warning rounded-pill fw-semibold">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Rollback Version
+            </button>
+          </div>
+        {% endif %}
+
+      </div>
+
+      <!-- LIVE GEMINI PROMPT TESTING SANDBOX -->
+      <div class="config-card p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-play-circle-fill text-danger me-2"></i> Live Prompt Testing Sandbox</h5>
+        
+        <div class="mb-3">
+          <label class="form-label fs-8 fw-semibold">Test Student Input</label>
+          <input type="text" id="testInput" class="form-control rounded-pill glass-input fs-8" value="Explain fractions using a pizza analogy!">
+        </div>
+
+        <button onclick="runLivePromptTest()" class="btn btn-danger w-100 rounded-pill fw-semibold shadow-sm mb-3">
+          <i class="bi bi-lightning-charge-fill me-1"></i> Run Prompt Test Against Gemini API
+        </button>
+
+        <div id="testResultBox" class="p-3 rounded-4 bg-dark text-white fs-8 d-none">
+          <div class="d-flex justify-content-between border-bottom border-secondary pb-2 mb-2">
+            <span class="fw-bold text-warning">Gemini API Live Response</span>
+            <small id="responseTimeBadge" class="text-success"></small>
+          </div>
+          <div id="testOutputText" class="opacity-90"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function updateConfig() {
+    const formData = new FormData(document.getElementById('configForm'));
+    const payload = Object.fromEntries(formData.entries());
+
+    fetch("{% url 'ai_config_update_api' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        location.reload();
+      }
+    });
+  }
+
+  function savePromptVersion() {
+    const templateId = document.getElementById('promptSelect').value;
+    const body = document.getElementById('promptBody').value;
+    const changeLog = document.getElementById('changeLog').value;
+
+    fetch(`/tutor/admin-hub/prompt/${templateId}/update/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ prompt_body: body, change_log: changeLog })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        location.reload();
+      }
+    });
+  }
+
+  function runLivePromptTest() {
+    const templateId = document.getElementById('promptSelect').value;
+    const testInput = document.getElementById('testInput').value;
+
+    fetch(`/tutor/admin-hub/prompt/${templateId}/test/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ test_input: testInput })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('testResultBox').classList.remove('d-none');
+        document.getElementById('responseTimeBadge').innerText = `${data.response_time_ms} ms`;
+        document.getElementById('testOutputText').innerText = data.test_output;
+      }
+    });
+  }
+
+  function rollbackPrompt() {
+    const templateId = document.getElementById('promptSelect').value;
+    const targetVer = prompt("Enter target version number to rollback to (e.g. 1):", "1");
+    if (targetVer) {
+      fetch(`/tutor/admin-hub/prompt/${templateId}/rollback/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ target_version: parseInt(targetVer) })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert(data.error);
+        }
+      });
+    }
+  }
+</script>
+{% endblock %}

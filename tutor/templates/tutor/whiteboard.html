@@ -1,0 +1,465 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ active_board.title }} - AI Whiteboard & Math Workspace{% endblock %}
+
+{% block extra_head %}
+<!-- Fabric.js HTML5 Canvas Engine -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+<!-- KaTeX Math Rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<!-- Markdown-it -->
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
+<!-- jspdf for PDF Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  .wb-toolbar {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    border-radius: 1rem;
+    box-shadow: var(--card-shadow);
+  }
+
+  .wb-tool-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 0.75rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    transition: all 0.2s ease;
+  }
+
+  .wb-tool-btn:hover {
+    background: rgba(99, 102, 241, 0.15);
+    color: #4f46e5;
+  }
+
+  .wb-tool-btn.active {
+    background: #4f46e5 !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  }
+
+  .canvas-wrapper {
+    background: #ffffff;
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  [data-theme="dark"] .canvas-wrapper {
+    background: #0f172a;
+  }
+
+  .math-key-btn {
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    color: var(--text-color);
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.15s ease;
+  }
+
+  .math-key-btn:hover {
+    background: #4f46e5;
+    color: white;
+  }
+
+  .ai-side-panel {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border-left: 1px solid var(--card-border);
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+
+  .mode-pill.active {
+    background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%) !important;
+    color: white !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-3">
+  
+  <!-- Header Control Bar -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <h4 class="fw-bold mb-0" style="color: var(--text-color);"><i class="bi bi-easel-fill text-primary me-2"></i> {{ active_board.title }}</h4>
+      <span class="badge bg-success-subtle text-success rounded-pill px-3 py-1 fs-8" id="autosave-status-badge">
+        <i class="bi bi-cloud-check-fill me-1"></i> Auto-saved
+      </span>
+    </div>
+
+    <!-- 6 Workspace Mode Switcher Pills -->
+    <div class="d-none d-md-flex align-items-center gap-1 bg-primary-subtle p-1 rounded-pill">
+      {% for mode_val, mode_label in mode_choices %}
+        <a href="{% url 'whiteboard_create' %}?mode={{ mode_val }}" class="btn btn-sm rounded-pill mode-pill px-3 fs-8 fw-semibold {% if active_board.mode == mode_val %}active{% endif %}">
+          {{ mode_label }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="saveBoard(false)">
+        <i class="bi bi-save me-1"></i> Save
+      </button>
+      <button class="btn btn-outline-success btn-sm rounded-pill" onclick="exportPNG()">
+        <i class="bi bi-download me-1"></i> Export PNG
+      </button>
+      <button class="btn btn-outline-secondary btn-sm rounded-circle p-2" onclick="toggleFullscreen()" title="Fullscreen">
+        <i class="bi bi-arrows-angle-expand"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- LEFT & CENTER: FABRIC.JS WHITEBOARD CANVAS -->
+    <div class="col-lg-8 col-xl-9">
+      
+      <!-- TOOLBAR -->
+      <div class="wb-toolbar p-2 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-1">
+          <!-- Drawing Tools -->
+          <button class="wb-tool-btn active" id="tool-pencil" onclick="setTool('pencil')" title="Pencil"><i class="bi bi-pencil-fill"></i></button>
+          <button class="wb-tool-btn" id="tool-brush" onclick="setTool('brush')" title="Brush"><i class="bi bi-brush-fill"></i></button>
+          <button class="wb-tool-btn" id="tool-marker" onclick="setTool('marker')" title="Marker"><i class="bi bi-highlighter"></i></button>
+          <button class="wb-tool-btn" id="tool-eraser" onclick="setTool('eraser')" title="Eraser"><i class="bi bi-eraser-fill"></i></button>
+          
+          <div class="vr mx-1"></div>
+
+          <!-- Shapes -->
+          <button class="wb-tool-btn" onclick="addShape('rect')" title="Rectangle"><i class="bi bi-square"></i></button>
+          <button class="wb-tool-btn" onclick="addShape('circle')" title="Circle"><i class="bi bi-circle"></i></button>
+          <button class="wb-tool-btn" onclick="addShape('triangle')" title="Triangle"><i class="bi bi-triangle"></i></button>
+          <button class="wb-tool-btn" onclick="addShape('line')" title="Line"><i class="bi bi-dash-lg"></i></button>
+          
+          <div class="vr mx-1"></div>
+
+          <!-- Text & Sticky Notes -->
+          <button class="wb-tool-btn" onclick="addText()" title="Text Tool"><i class="bi bi-type"></i></button>
+          <button class="wb-tool-btn" onclick="addStickyNote()" title="Sticky Note"><i class="bi bi-sticky"></i></button>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <!-- Color Picker -->
+          <input type="color" id="stroke-color" class="form-control form-control-color border-0 rounded-circle" value="#4f46e5" onchange="changeColor(this.value)" title="Choose Color">
+          
+          <!-- Stroke Width Slider -->
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-circle-fill fs-9 text-muted"></i>
+            <input type="range" class="form-range" id="stroke-width" min="2" max="30" value="4" oninput="changeStrokeWidth(this.value)" style="width: 80px;">
+          </div>
+
+          <div class="vr mx-1"></div>
+
+          <!-- Canvas Action Stack -->
+          <button class="wb-tool-btn" onclick="undo()" title="Undo"><i class="bi bi-arrow-counterclockwise"></i></button>
+          <button class="wb-tool-btn" onclick="redo()" title="Redo"><i class="bi bi-arrow-clockwise"></i></button>
+          <button class="wb-tool-btn text-danger" onclick="clearCanvas()" title="Clear Canvas"><i class="bi bi-trash-fill"></i></button>
+        </div>
+      </div>
+
+      <!-- CANVAS -->
+      <div class="canvas-wrapper text-center">
+        <canvas id="fabric-canvas"></canvas>
+      </div>
+
+      <!-- VIRTUAL MATH KEYBOARD TOOLBAR -->
+      <div class="wb-toolbar p-3 mt-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="fw-bold fs-8 text-primary"><i class="bi bi-calculator me-1"></i> Virtual Math Keyboard</span>
+          <span class="fs-9 text-muted">Tap symbols to insert directly into Math Solver</span>
+        </div>
+        <div class="d-flex flex-wrap gap-1">
+          <button class="math-key-btn" onclick="insertMathKey('+')">+</button>
+          <button class="math-key-btn" onclick="insertMathKey('-')">-</button>
+          <button class="math-key-btn" onclick="insertMathKey('×')">×</button>
+          <button class="math-key-btn" onclick="insertMathKey('÷')">÷</button>
+          <button class="math-key-btn" onclick="insertMathKey('=')">=</button>
+          <button class="math-key-btn" onclick="insertMathKey('√')">√</button>
+          <button class="math-key-btn" onclick="insertMathKey('π')">π</button>
+          <button class="math-key-btn" onclick="insertMathKey('θ')">θ</button>
+          <button class="math-key-btn" onclick="insertMathKey('x^2')">x²</button>
+          <button class="math-key-btn" onclick="insertMathKey('x^n')">xⁿ</button>
+          <button class="math-key-btn" onclick="insertMathKey('a/b')">a/b</button>
+          <button class="math-key-btn" onclick="insertMathKey('(')">(</button>
+          <button class="math-key-btn" onclick="insertMathKey(')')">)</button>
+          <button class="math-key-btn" onclick="insertMathKey('[')">[</button>
+          <button class="math-key-btn" onclick="insertMathKey(']')">]</button>
+          <button class="math-key-btn" onclick="insertMathKey('α')">α</button>
+          <button class="math-key-btn" onclick="insertMathKey('β')">β</button>
+          <button class="math-key-btn" onclick="insertMathKey('Δ')">Δ</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDEBAR: SPARKY AI MATH SOLVER & HINTS -->
+    <div class="col-lg-4 col-xl-3">
+      <div class="ai-side-panel p-3 rounded-4 shadow-sm">
+        
+        <div class="d-flex align-items-center gap-3 mb-3 pb-2 border-bottom">
+          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:40px; height:40px; font-size:1.2rem;">
+            <i class="bi bi-robot"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0" style="color: var(--text-color);">Sparky AI Math Solver</h6>
+            <span class="fs-9 text-muted">Step-by-Step Tutors</span>
+          </div>
+        </div>
+
+        <!-- Math Expression Input & Actions -->
+        <div class="mb-3">
+          <label for="math-expr-input" class="form-label fw-semibold fs-8 text-muted">Math Expression / Equation</label>
+          <div class="input-group mb-2">
+            <input type="text" id="math-expr-input" class="form-control rounded-pill glass-input fs-7" placeholder="e.g. 27 * 13 or 3x + 5 = 20" value="27 * 13">
+          </div>
+          <div class="d-grid gap-2">
+            <button class="btn btn-edu-primary py-2 fs-7 shadow-sm" onclick="solveMathProblem()">
+              <i class="bi bi-magic me-1"></i> Solve & Explain Step-by-Step
+            </button>
+            <button class="btn btn-outline-warning text-dark py-2 fs-7 fw-semibold" onclick="getMathHint()">
+              <i class="bi bi-lightbulb-fill text-warning me-1"></i> Give Me a Hint
+            </button>
+          </div>
+        </div>
+
+        <!-- Hint Box -->
+        <div id="math-hint-box" class="alert alert-warning border-0 rounded-3 shadow-sm d-none mb-3 fs-8">
+          <i class="bi bi-info-circle-fill me-1"></i> <span id="math-hint-text"></span>
+        </div>
+
+        <!-- Solution Breakdown Feed -->
+        <div class="border-top pt-3">
+          <h6 class="fw-bold fs-8 text-muted mb-3"><i class="bi bi-journal-check text-success me-1"></i> Step-by-Step Solution</h6>
+          <div id="math-solution-box" class="fs-7">
+            {% if math_sessions %}
+              {% for ms in math_sessions %}
+                {% for sol in ms.solutions.all %}
+                  <div class="glass-card p-3 mb-3 border-0 shadow-sm rounded-3">
+                    <div class="fw-bold text-primary mb-1">Problem: {{ ms.detected_expression }}</div>
+                    <div class="math-solution-content" data-raw-content="{{ sol.step_by_step_explanation|escapejs }}">
+                      {{ sol.step_by_step_explanation }}
+                    </div>
+                  </div>
+                {% endfor %}
+              {% endfor %}
+            {% else %}
+              <div class="text-center text-muted py-4">
+                <i class="bi bi-calculator-fill fs-2 text-primary d-block mb-2 opacity-50"></i>
+                <p class="fs-8 mb-0">Write a math equation or type it above to get step-by-step AI reasoning!</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Integration Shortcut Buttons -->
+        <div class="border-top pt-3 mt-3 d-flex gap-2">
+          <a href="{% url 'chat_tutor_session' session_id=active_board.chat_session.id %}" class="btn btn-outline-primary btn-sm flex-grow-1 rounded-pill">
+            <i class="bi bi-chat-left-text me-1"></i> Chat History
+          </a>
+          <a href="{% url 'voice_tutor_session' session_id=active_board.chat_session.id %}" class="btn btn-outline-danger btn-sm flex-grow-1 rounded-pill">
+            <i class="bi bi-mic me-1"></i> Voice Tutor
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let canvas;
+  const boardId = {{ active_board.id }};
+  const rawCanvasState = `{{ active_board.canvas_json|escapejs }}`;
+  const md = window.markdownit({ html: true, linkify: true });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Fabric Canvas
+    canvas = new fabric.Canvas('fabric-canvas', {
+      isDrawingMode: true,
+      width: document.querySelector('.canvas-wrapper').clientWidth - 10,
+      height: 480,
+    });
+
+    // Set default brush
+    canvas.freeDrawingBrush.color = '#4f46e5';
+    canvas.freeDrawingBrush.width = 4;
+
+    // Load initial canvas state if present
+    if (rawCanvasState && rawCanvasState !== '{}') {
+      try {
+        canvas.loadFromJSON(JSON.parse(rawCanvasState), canvas.renderAll.bind(canvas));
+      } catch(e) {}
+    }
+
+    // Render Math in solutions
+    document.querySelectorAll('.math-solution-content').forEach(el => {
+      const raw = el.getAttribute('data-raw-content') || el.innerText;
+      el.innerHTML = md.render(raw);
+    });
+    renderMathInElement(document.getElementById('math-solution-box'), {
+      delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]
+    });
+
+    // Auto-save interval (every 10s)
+    setInterval(() => { saveBoard(true); }, 10000);
+  });
+
+  // Tools Setup
+  function setTool(tool) {
+    document.querySelectorAll('.wb-tool-btn').forEach(b => b.classList.remove('active'));
+    canvas.isDrawingMode = (tool !== 'select');
+
+    if (tool === 'pencil') {
+      document.getElementById('tool-pencil').classList.add('active');
+      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+      canvas.freeDrawingBrush.color = document.getElementById('stroke-color').value;
+      canvas.freeDrawingBrush.width = parseInt(document.getElementById('stroke-width').value);
+    } else if (tool === 'eraser') {
+      document.getElementById('tool-eraser').classList.add('active');
+      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+      canvas.freeDrawingBrush.color = '#ffffff';
+      canvas.freeDrawingBrush.width = 20;
+    }
+  }
+
+  function changeColor(color) {
+    if (canvas.freeDrawingBrush) canvas.freeDrawingBrush.color = color;
+  }
+
+  function changeStrokeWidth(val) {
+    if (canvas.freeDrawingBrush) canvas.freeDrawingBrush.width = parseInt(val);
+  }
+
+  // Add Shapes
+  function addShape(shapeType) {
+    canvas.isDrawingMode = false;
+    let shape;
+    if (shapeType === 'rect') {
+      shape = new fabric.Rect({ left: 100, top: 100, fill: 'transparent', stroke: '#4f46e5', strokeWidth: 3, width: 100, height: 80 });
+    } else if (shapeType === 'circle') {
+      shape = new fabric.Circle({ left: 150, top: 100, fill: 'transparent', stroke: '#ec4899', strokeWidth: 3, radius: 45 });
+    } else if (shapeType === 'triangle') {
+      shape = new fabric.Triangle({ left: 200, top: 100, fill: 'transparent', stroke: '#f59e0b', strokeWidth: 3, width: 90, height: 90 });
+    }
+    if (shape) canvas.add(shape);
+  }
+
+  function addText() {
+    canvas.isDrawingMode = false;
+    const text = new fabric.IText('Tap to edit text', { left: 120, top: 120, fontSize: 22, fill: '#1e293b' });
+    canvas.add(text);
+  }
+
+  function addStickyNote() {
+    canvas.isDrawingMode = false;
+    const note = new fabric.Rect({ left: 100, top: 100, fill: '#fef08a', width: 120, height: 120, rx: 8, ry: 8 });
+    const noteText = new fabric.IText('Math Note', { left: 110, top: 110, fontSize: 16, fill: '#854d0e' });
+    const group = new fabric.Group([note, noteText], { left: 100, top: 100 });
+    canvas.add(group);
+  }
+
+  function clearCanvas() {
+    if (confirm("Clear entire canvas?")) canvas.clear();
+  }
+
+  function insertMathKey(sym) {
+    const input = document.getElementById('math-expr-input');
+    input.value += sym;
+    input.focus();
+  }
+
+  // Save Board
+  async function saveBoard(isAuto = false) {
+    const jsonState = JSON.stringify(canvas.toJSON());
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    const res = await fetch(`/tutor/whiteboard/${boardId}/save/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ canvas_json: jsonState, is_auto_save: isAuto })
+    });
+    if (res.ok) {
+      document.getElementById('autosave-status-badge').innerHTML = '<i class="bi bi-cloud-check-fill me-1"></i> Auto-saved';
+    }
+  }
+
+  // Solve & Hint API
+  async function solveMathProblem() {
+    const expr = document.getElementById('math-expr-input').value.trim();
+    if (!expr) return;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    const res = await fetch(`/tutor/math/${boardId}/solve/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ expression: expr })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      const box = document.getElementById('math-solution-box');
+      const div = document.createElement('div');
+      div.className = 'glass-card p-3 mb-3 border-0 shadow-sm rounded-3';
+      div.innerHTML = `
+        <div class="fw-bold text-primary mb-1">Problem: ${data.expression}</div>
+        <div>${md.render(data.solution_html)}</div>
+      `;
+      box.insertBefore(div, box.firstChild);
+      renderMathInElement(box, { delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}] });
+    }
+  }
+
+  async function getMathHint() {
+    const expr = document.getElementById('math-expr-input').value.trim();
+    if (!expr) return;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    const res = await fetch(`/tutor/math/${boardId}/hint/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ expression: expr })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      const hintBox = document.getElementById('math-hint-box');
+      document.getElementById('math-hint-text').innerText = data.hint;
+      hintBox.classList.remove('d-none');
+    }
+  }
+
+  function exportPNG() {
+    const link = document.createElement('a');
+    link.download = `whiteboard_${boardId}.png`;
+    link.href = canvas.toDataURL({ format: 'png' });
+    link.click();
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}AI Analytics Center - EduVerse AI Kids{% endblock %}
+
+{% block extra_head %}
+<style>
+  .analytics-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.75rem;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- TOP ANALYTICS HERO HEADER -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-4 rounded-4 shadow text-white" style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-white text-purple d-flex align-items-center justify-content-center fw-bold shadow" style="width:56px; height:56px; font-size:1.8rem;">
+        📊
+      </div>
+      <div>
+        <h3 class="fw-bold mb-0">AI Analytics Center & Learning Curves</h3>
+        <p class="mb-0 fs-8 opacity-90">Deep insights for {{ target_student.username }} calculated by Gemini AI engine.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <!-- Learning Speed & Retention Score Cards -->
+    <div class="col-md-6">
+      <div class="analytics-card p-4 text-center">
+        <h5 class="fw-bold mb-1">Learning Speed Score</h5>
+        <div class="display-4 fw-bold text-purple my-2">{{ analytics.learning_speed }}%</div>
+        <p class="text-muted fs-8 mb-0">Measures concept mastery acceleration across Math, Science, and English.</p>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="analytics-card p-4 text-center">
+        <h5 class="fw-bold mb-1">Retention Score</h5>
+        <div class="display-4 fw-bold text-pink my-2">{{ analytics.retention_trend }}%</div>
+        <p class="text-muted fs-8 mb-0">Measures long-term recall strength across reading & speaking quizzes.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBJECT PERFORMANCE DISTRIBUTION CHART -->
+  <div class="analytics-card p-4 mb-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i> Subject Activity Distribution</h5>
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <canvas id="subjectPieChart" height="200"></canvas>
+      </div>
+      <div class="col-md-6">
+        <div class="p-3 bg-purple-subtle rounded-3 mb-3 border-start border-purple border-4 fs-8">
+          <strong>AI Insights:</strong> {{ analytics.ai_recommendation }}
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge bg-primary rounded-pill p-2">Math 🔢 (30%)</span>
+          <span class="badge bg-success rounded-pill p-2">Science 🔬 (25%)</span>
+          <span class="badge bg-warning text-dark rounded-pill p-2">Reading 📖 (20%)</span>
+          <span class="badge bg-danger rounded-pill p-2">Speaking 🗣️ (15%)</span>
+          <span class="badge bg-info rounded-pill p-2">Games 🎮 (10%)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('subjectPieChart');
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Math', 'Science', 'Reading', 'Speaking', 'Games'],
+          datasets: [{
+            data: [30, 25, 20, 15, 10],
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

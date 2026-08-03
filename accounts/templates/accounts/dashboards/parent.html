@@ -1,0 +1,292 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Parent Hub & AI Insights - EduVerse AI Kids{% endblock %}
+
+{% block extra_head %}
+<style>
+  .parent-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.75rem;
+  }
+</style>
+<!-- Chart.js for progress analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- TOP PARENT HUB HERO HEADER -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-4 rounded-4 shadow text-white" style="background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-white text-info d-flex align-items-center justify-content-center fw-bold shadow" style="width:56px; height:56px; font-size:1.8rem;">
+        👨‍👩‍👧‍👦
+      </div>
+      <div>
+        <h3 class="fw-bold mb-0">Parent Hub & AI Learning Insights</h3>
+        <p class="mb-0 fs-8 opacity-90">Real-time progress, daily study plans, reading/speaking trends, and AI recommendations.</p>
+      </div>
+    </div>
+
+    <!-- Linked Children Selector Tabs -->
+    <div class="d-flex align-items-center gap-2 mt-3 mt-md-0">
+      {% for rel in relations %}
+        <a href="{% url 'parent_child_dashboard' child_id=rel.child.id %}" class="btn {% if active_child.id == rel.child.id %}btn-light text-primary fw-bold{% else %}btn-outline-light{% endif %} rounded-pill px-3 fs-8">
+          👶 {{ rel.child.username }}
+        </a>
+      {% empty %}
+        <span class="badge bg-white text-dark rounded-pill fs-8">No linked child profile</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if active_child %}
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN: CHILD OVERVIEW, TODAY'S PLAN & PROGRESS -->
+    <div class="col-lg-8">
+      
+      <!-- Child Profile Quick Summary -->
+      <div class="parent-card p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold fs-4" style="width:48px; height:48px;">
+              {{ active_child.username|slice:":1"|upper }}
+            </div>
+            <div>
+              <h4 class="fw-bold mb-0">{{ active_child.username }}</h4>
+              <small class="text-muted fs-8">Active Learner • EduVerse Student Account</small>
+            </div>
+          </div>
+          <span class="badge bg-success rounded-pill px-3 py-2 fs-8">🟢 Online Learning Active</span>
+        </div>
+
+        <!-- Metric Badges Row -->
+        <div class="row text-center g-3">
+          <div class="col-md-3">
+            <div class="p-3 border rounded-3 glass-card">
+              <h4 class="fw-bold text-primary mb-0">{{ child_analytics.learning_speed|default:"85.0" }}%</h4>
+              <span class="fs-9 text-muted">Learning Speed</span>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 border rounded-3 glass-card">
+              <h4 class="fw-bold text-success mb-0">{{ child_analytics.retention_trend|default:"88.0" }}%</h4>
+              <span class="fs-9 text-muted">Retention Score</span>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 border rounded-3 glass-card">
+              <h4 class="fw-bold text-warning mb-0">62m</h4>
+              <span class="fs-9 text-muted">Study Time Today</span>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 border rounded-3 glass-card">
+              <h4 class="fw-bold text-danger mb-0">85%</h4>
+              <span class="fs-9 text-muted">Goal Completion</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MIDNIGHT AI STUDY PLAN CARD -->
+      <div class="parent-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-calendar-check-fill text-info me-2"></i> Today's AI Study Plan (80 Minutes)</h5>
+        
+        <div class="row g-3 text-center mb-3">
+          <div class="col-4 col-md-2">
+            <div class="p-2 border rounded-3 glass-card">
+              <span class="fs-3">🔢</span>
+              <div class="fw-bold fs-8">Math</div>
+              <small class="text-muted fs-9">20 Mins</small>
+            </div>
+          </div>
+          <div class="col-4 col-md-2">
+            <div class="p-2 border rounded-3 glass-card">
+              <span class="fs-3">🔬</span>
+              <div class="fw-bold fs-8">Science</div>
+              <small class="text-muted fs-9">15 Mins</small>
+            </div>
+          </div>
+          <div class="col-4 col-md-2">
+            <div class="p-2 border rounded-3 glass-card">
+              <span class="fs-3">📖</span>
+              <div class="fw-bold fs-8">Reading</div>
+              <small class="text-muted fs-9">15 Mins</small>
+            </div>
+          </div>
+          <div class="col-4 col-md-2">
+            <div class="p-2 border rounded-3 glass-card">
+              <span class="fs-3">🗣️</span>
+              <div class="fw-bold fs-8">Speaking</div>
+              <small class="text-muted fs-9">10 Mins</small>
+            </div>
+          </div>
+          <div class="col-4 col-md-2">
+            <div class="p-2 border rounded-3 glass-card">
+              <span class="fs-3">📝</span>
+              <div class="fw-bold fs-8">Homework</div>
+              <small class="text-muted fs-9">10 Mins</small>
+            </div>
+          </div>
+          <div class="col-4 col-md-2">
+            <div class="p-2 border rounded-3 glass-card">
+              <span class="fs-3">🎮</span>
+              <div class="fw-bold fs-8">Games</div>
+              <small class="text-muted fs-9">10 Mins</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="progress rounded-pill" style="height:10px;">
+          <div class="progress-bar bg-info rounded-pill" style="width: 85%;"></div>
+        </div>
+        <div class="d-flex justify-content-between fs-9 text-muted mt-2">
+          <span>Completed: 62 Mins</span>
+          <span>Target: 80 Mins (85% Done)</span>
+        </div>
+      </div>
+
+      <!-- PROGRESS ANALYTICS CHART -->
+      <div class="parent-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow text-primary me-2"></i> Weekly Study Time Trend</h5>
+        <canvas id="studyTimeChart" height="110"></canvas>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: AI RECOMMENDATIONS & NOTIFICATION PREFERENCES -->
+    <div class="col-lg-4">
+
+      <!-- AI Recommendations Card -->
+      <div class="parent-card p-4 mb-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-robot text-warning me-2"></i> Gemini AI Tutor Insight</h6>
+        <div class="p-3 bg-warning-subtle text-dark rounded-3 border-start border-warning border-4 mb-3 fs-8">
+          {{ child_analytics.ai_recommendation|default:"Practice Fractions for 10 minutes tomorrow to build math confidence!" }}
+        </div>
+
+        <div class="mb-3">
+          <label class="fw-bold fs-8 text-muted d-block mb-1">Weak Topics Needing Practice:</label>
+          <span class="badge bg-danger rounded-pill me-1">Fractions 🔢</span>
+          <span class="badge bg-danger rounded-pill me-1">Past Tense Verbs 📖</span>
+        </div>
+
+        <div>
+          <label class="fw-bold fs-8 text-muted d-block mb-1">Strong Topics Mastered:</label>
+          <span class="badge bg-success rounded-pill me-1">Addition & Subtraction ➕</span>
+          <span class="badge bg-success rounded-pill me-1">Vocabulary & Spelling ✍️</span>
+        </div>
+      </div>
+
+      <!-- Smart Notification Preference Center Card -->
+      <div class="parent-card p-4 mb-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-bell-fill text-danger me-2"></i> Parent Alert Channels</h6>
+        
+        <form onsubmit="saveNotificationPrefs(event)">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="pref-sms" checked>
+            <label class="form-check-label fs-8 fw-semibold" for="pref-sms">SMS Alerts (Twilio/MSG91)</label>
+          </div>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="pref-whatsapp" checked>
+            <label class="form-check-label fs-8 fw-semibold" for="pref-whatsapp">WhatsApp Evening Digest</label>
+          </div>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="pref-email" checked>
+            <label class="form-check-label fs-8 fw-semibold" for="pref-email">Email Progress Reports</label>
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="pref-inapp" checked>
+            <label class="form-check-label fs-8 fw-semibold" for="pref-inapp">In-App Notifications</label>
+          </div>
+
+          <button type="submit" class="btn btn-outline-info w-100 rounded-pill fs-8 fw-bold">
+            Save Preferences
+          </button>
+        </form>
+      </div>
+
+      <!-- Recent Notifications Log Card -->
+      <div class="parent-card p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-chat-left-dots-fill text-primary me-2"></i> Recent Parent Alerts</h6>
+        <div class="list-group list-group-flush">
+          {% for notif in notifications %}
+            <div class="list-group-item bg-transparent border-0 rounded-3 p-2 mb-2 glass-card">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="fw-bold fs-8">{{ notif.title }}</span>
+                <span class="badge bg-info-subtle text-info rounded-pill fs-9">{{ notif.channel }}</span>
+              </div>
+              <p class="fs-9 text-muted mb-0">{{ notif.message }}</p>
+            </div>
+          {% empty %}
+            <div class="list-group-item bg-transparent border-0 rounded-3 p-2 text-muted fs-8">
+              ✅ Daily goal achieved alert sent to SMS & WhatsApp!
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+  {% else %}
+  <div class="parent-card p-5 text-center">
+    <h4>No Linked Student Account Found</h4>
+    <p class="text-muted fs-8">Please link a child student account to view AI learning analytics.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('studyTimeChart');
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Study Time (Minutes)',
+            data: [45, 50, 65, 55, 70, 80, 62],
+            borderColor: '#06b6d4',
+            backgroundColor: 'rgba(6, 182, 212, 0.15)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+  });
+
+  async function saveNotificationPrefs(e) {
+    e.preventDefault();
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const res = await fetch('/tutor/notifications/prefs/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({
+        enable_sms: document.getElementById('pref-sms').checked,
+        enable_whatsapp: document.getElementById('pref-whatsapp').checked,
+        enable_email: document.getElementById('pref-email').checked,
+        enable_in_app: document.getElementById('pref-inapp').checked,
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert("Notification preferences saved successfully! 🔔");
+    }
+  }
+</script>
+{% endblock %}

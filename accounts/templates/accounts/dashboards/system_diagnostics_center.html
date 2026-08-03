@@ -1,0 +1,174 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}System Diagnostics & Cache Management Studio - EduVerse AI Kids{% endblock %}
+
+{% block extra_head %}
+<style>
+  .diag-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- HERO BANNER -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-4 rounded-4 shadow text-white" style="background: linear-gradient(135deg, #0f172a 0%, #334155 100%);">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center fw-bold shadow" style="width:56px; height:56px; font-size:1.8rem;">
+        🛠️
+      </div>
+      <div>
+        <h3 class="fw-bold mb-0">Enterprise Security, Diagnostics & Cache Studio</h3>
+        <p class="mb-0 fs-8 opacity-90">Real-time database latency, Redis ping ms, Celery worker diagnostics, selective cache invalidation & maintenance mode.</p>
+      </div>
+    </div>
+    <a href="{% url 'admin_hub' %}" class="btn btn-light shadow px-3 fw-semibold rounded-pill">
+      <i class="bi bi-shield-lock me-1"></i> Admin Dashboard
+    </a>
+  </div>
+
+  <!-- DIAGNOSTICS TELEMETRY CARDS -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-3">
+      <div class="diag-card p-4 text-center">
+        <div class="text-muted fs-8 fw-semibold mb-1">DB Query Latency</div>
+        <h2 class="fw-bold text-primary mb-0">{{ diag.db_latency_ms }} ms</h2>
+        <small class="badge bg-success rounded-pill mt-1">{{ diag.db_status }}</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="diag-card p-4 text-center">
+        <div class="text-muted fs-8 fw-semibold mb-1">Redis Ping Latency</div>
+        <h2 class="fw-bold text-success mb-0">{{ diag.redis_latency_ms }} ms</h2>
+        <small class="badge bg-success rounded-pill mt-1">{{ diag.redis_status }}</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="diag-card p-4 text-center">
+        <div class="text-muted fs-8 fw-semibold mb-1">Free Storage</div>
+        <h2 class="fw-bold text-info mb-0">{{ diag.free_disk_gb }} GB</h2>
+        <small class="text-muted fs-9">Disk IO Healthy</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="diag-card p-4 text-center">
+        <div class="text-muted fs-8 fw-semibold mb-1">Overall System Health</div>
+        <h2 class="fw-bold text-emerald mb-0" style="color:#10b981;">{{ diag.overall_health }}</h2>
+        <small class="text-muted fs-9">Security Headers Active</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN: CACHE MANAGEMENT STUDIO -->
+    <div class="col-lg-6">
+      <div class="diag-card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-hdd-rack-fill text-warning me-2"></i> Redis Cache Management Studio</h5>
+        <p class="fs-8 text-muted mb-4">Perform safe selective invalidation or flush the global cache without restarting servers.</p>
+
+        <div class="row g-3">
+          <div class="col-6">
+            <button onclick="flushCache('AI_CONFIG')" class="btn btn-outline-primary w-100 p-3 rounded-4 shadow-sm text-start">
+              <div class="fw-bold fs-7"><i class="bi bi-sliders me-1"></i> AI Configuration</div>
+              <small class="text-muted fs-9">Clear Active Hyperparameters</small>
+            </button>
+          </div>
+          <div class="col-6">
+            <button onclick="flushCache('PROMPTS')" class="btn btn-outline-info w-100 p-3 rounded-4 shadow-sm text-start">
+              <div class="fw-bold fs-7"><i class="bi bi-code-slash me-1"></i> Module Prompts</div>
+              <small class="text-muted fs-9">Clear Active System Prompts</small>
+            </button>
+          </div>
+          <div class="col-6">
+            <button onclick="flushCache('LEADERBOARD')" class="btn btn-outline-success w-100 p-3 rounded-4 shadow-sm text-start">
+              <div class="fw-bold fs-7"><i class="bi bi-trophy me-1"></i> Leaderboard Cache</div>
+              <small class="text-muted fs-9">Recalculate Student Rankings</small>
+            </button>
+          </div>
+          <div class="col-6">
+            <button onclick="flushCache('ALL')" class="btn btn-danger w-100 p-3 rounded-4 shadow-sm text-start">
+              <div class="fw-bold fs-7"><i class="bi bi-fire me-1"></i> Global Flush</div>
+              <small class="text-white opacity-75 fs-9">Clear Entire Redis Cache</small>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: MAINTENANCE MODE & SECURITY STATUS -->
+    <div class="col-lg-6">
+      <div class="diag-card p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-shield-check text-primary me-2"></i> System Maintenance Mode & Security</h5>
+        
+        <div class="d-flex align-items-center justify-content-between p-3 rounded-4 bg-light mb-4">
+          <div>
+            <strong class="d-block text-dark">Platform Maintenance Mode</strong>
+            <small class="text-muted fs-8">Restrict student logins during platform upgrades</small>
+          </div>
+          <div class="form-check form-switch fs-4">
+            <input class="form-check-input" type="checkbox" id="maintenanceSwitch" {% if is_maintenance %}checked{% endif %} onchange="toggleMaintenance()">
+          </div>
+        </div>
+
+        <h6 class="fw-bold mb-3">Active Enterprise Security Protections</h6>
+        <ul class="list-group list-group-flush fs-8">
+          <li class="list-group-item bg-transparent px-0"><i class="bi bi-check-circle-fill text-success me-2"></i> HSTS (HTTP Strict Transport Security) - 1 Year</li>
+          <li class="list-group-item bg-transparent px-0"><i class="bi bi-check-circle-fill text-success me-2"></i> XSS Protection & Content-Type No-Sniff Headers</li>
+          <li class="list-group-item bg-transparent px-0"><i class="bi bi-check-circle-fill text-success me-2"></i> Clickjacking Protection (X-Frame-Options: DENY)</li>
+          <li class="list-group-item bg-transparent px-0"><i class="bi bi-check-circle-fill text-success me-2"></i> SameSite Strict Session & CSRF Security Cookies</li>
+          <li class="list-group-item bg-transparent px-0"><i class="bi bi-check-circle-fill text-success me-2"></i> Strict File Upload Limits (25MB Max Body)</li>
+        </ul>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function flushCache(target) {
+    if (confirm(`Flush cache target '${target}'?`)) {
+      fetch("{% url 'cache_flush_api' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ target: target })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+        }
+      });
+    }
+  }
+
+  function toggleMaintenance() {
+    const isChecked = document.getElementById('maintenanceSwitch').checked;
+    fetch("{% url 'maintenance_mode_toggle_api' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ active: isChecked })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+      }
+    });
+  }
+</script>
+{% endblock %}
