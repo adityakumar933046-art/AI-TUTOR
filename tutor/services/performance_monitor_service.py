@@ -42,12 +42,15 @@ class PerformanceMonitorService:
     @staticmethod
     def get_feature_usage_breakdown():
         features = FeatureUsage.objects.all().order_by('-total_usage_count')
-        if not features.exists():
-            return [
-                {'feature_name': 'AI Chat', 'count': 45},
-                {'feature_name': 'Voice Tutor', 'count': 32},
-                {'feature_name': 'Homework Scanner', 'count': 28},
-                {'feature_name': 'Visual Learning', 'count': 20},
-                {'feature_name': 'AI Games', 'count': 50}
-            ]
-        return [{'feature_name': f.feature_name, 'count': f.total_usage_count} for f in features]
+        if features.exists():
+            return [{'feature_name': f.feature_name, 'count': f.total_usage_count} for f in features]
+        
+        # Dynamic database queries fallback
+        from tutor.models import ChatMessage, VoiceSession, Homework, VisualLesson, GameSession
+        return [
+            {'feature_name': 'AI Chat', 'count': ChatMessage.objects.filter(role='user').count()},
+            {'feature_name': 'Voice Tutor', 'count': VoiceSession.objects.count()},
+            {'feature_name': 'Homework Scanner', 'count': Homework.objects.count()},
+            {'feature_name': 'Visual Learning', 'count': VisualLesson.objects.count()},
+            {'feature_name': 'AI Games', 'count': GameSession.objects.count()}
+        ]
