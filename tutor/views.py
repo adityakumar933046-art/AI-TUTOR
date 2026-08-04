@@ -773,10 +773,25 @@ def reading_submit_api(request, session_id):
     prog, _ = ReadingProgress.objects.get_or_create(student=request.user)
     prog.total_passages_read += 1
     prog.total_words_read += session.passage.word_count
-    prog.total_reading_xp += int(overall_score * 2)
+    xp_earned = int(overall_score * 2)
+    prog.total_reading_xp += xp_earned
     prog.average_accuracy = round((prog.average_accuracy + accuracy) / 2.0, 1) if prog.average_accuracy else accuracy
     prog.average_wpm = round((prog.average_wpm + wpm) / 2.0, 1) if prog.average_wpm else wpm
     prog.save()
+
+    # Update Student Profile XP and Coins
+    profile, _ = StudentProfile.objects.get_or_create(user=request.user)
+    profile.xp += xp_earned
+    profile.coins += max(1, int(xp_earned / 2))
+    profile.save()
+
+    # Update Daily Progress for Parent Dashboard Telemetry
+    today = timezone.now().date()
+    dp, _ = DailyProgress.objects.get_or_create(student=request.user, date=today)
+    dp.study_time_minutes += max(1, int(duration_seconds / 60.0))
+    dp.reading_passages_read += 1
+    dp.xp_gained += xp_earned
+    dp.save()
 
     if session.chat_session:
         ChatMessage.objects.create(
@@ -801,7 +816,7 @@ def reading_submit_api(request, session_id):
         'wpm': wpm,
         'alignment': alignment['aligned_words'],
         'feedback': gemini_feedback,
-        'xp_earned': int(overall_score * 2)
+        'xp_earned': xp_earned
     })
 
 

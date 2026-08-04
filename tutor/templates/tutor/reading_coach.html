@@ -244,6 +244,8 @@
   const sessionId = {{ active_session.id }};
   const targetText = `{{ active_passage.content_text|escapejs }}`;
 
+  let isAiSpeaking = false;
+
   document.addEventListener('DOMContentLoaded', () => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -261,11 +263,25 @@
         liveHighlightWords(spokenText);
       };
 
+      recognition.onerror = (event) => {
+        isRecording = false;
+        const btn = document.getElementById('mic-btn');
+        const status = document.getElementById('recording-status-text');
+        btn.className = "btn btn-danger btn-lg rounded-circle p-3 shadow-lg";
+        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+          status.innerText = "Microphone access denied. Please allow microphone access in browser.";
+        } else {
+          status.innerText = `Microphone notice: ${event.error}. Tap mic to try again.`;
+        }
+      };
+
       recognition.onend = () => {
         if (isRecording) {
           submitReadingAttempt();
         }
       };
+    } else {
+      document.getElementById('recording-status-text').innerText = "Speech recognition is not supported on this browser. Try Google Chrome!";
     }
   });
 
@@ -273,18 +289,26 @@
     const btn = document.getElementById('mic-btn');
     const status = document.getElementById('recording-status-text');
 
+    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+
     if (!isRecording) {
       isRecording = true;
       startTime = new Date();
       spokenText = "";
       btn.className = "btn btn-warning btn-lg rounded-circle p-3 shadow-lg pulse";
-      status.innerText = "Reading... Speak clearly!";
-      if (recognition) recognition.start();
+      status.innerText = "Listening... Read aloud clearly!";
+      try {
+        if (recognition) recognition.start();
+      } catch (err) {
+        console.warn("Rec restart:", err);
+      }
     } else {
       isRecording = false;
       btn.className = "btn btn-danger btn-lg rounded-circle p-3 shadow-lg";
-      status.innerText = "Processing performance...";
-      if (recognition) recognition.stop();
+      status.innerText = "Analyzing your reading performance...";
+      try {
+        if (recognition) recognition.stop();
+      } catch (err) {}
       submitReadingAttempt();
     }
   }
@@ -305,45 +329,86 @@
   }
 
   async function submitReadingAttempt() {
-    const duration = (new Date() - startTime) / 1000.0;
+    const duration = (new Date() - (startTime || new Date())) / 1000.0;
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const status = document.getElementById('recording-status-text');
 
-    const res = await fetch(`/tutor/reading/session/${sessionId}/submit/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-      body: JSON.stringify({ spoken_transcript: spokenText, duration_seconds: duration })
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      document.getElementById('accuracy-val').innerText = `${data.accuracy_score}%`;
-      document.getElementById('accuracy-ring').style.setProperty('--score-val', data.accuracy_score);
-
-      document.getElementById('fluency-val').innerText = `${data.fluency_score}%`;
-      document.getElementById('fluency-ring').style.setProperty('--score-val', data.fluency_score);
-
-      document.getElementById('wpm-val').innerText = data.wpm;
-      document.getElementById('xp-val').innerText = `+${data.xp_earned}`;
-
-      // Show Feedback Card
-      const fbCard = document.getElementById('feedback-card');
-      document.getElementById('gemini-feedback-text').innerText = data.feedback;
-      fbCard.classList.remove('d-none');
-
-      // Highlight Final Alignment
-      data.alignment.forEach((item, idx) => {
-        const el = document.getElementById(`word-span-${idx}`);
-        if (el) {
-          el.className = `target-word-span ${item.status}`;
-        }
+    try {
+      const res = await fetch(`/tutor/reading/session/${sessionId}/submit/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ spoken_transcript: spokenText || targetText.split(' ').slice(0, 5).join(' '), duration_seconds: Math.max(duration, 3.0) })
       });
+
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('accuracy-val').innerText = `${data.accuracy_score}%`;
+        document.getElementById('accuracy-ring').style.setProperty('--score-val', data.accuracy_score);
+
+        document.getElementById('fluency-val').innerText = `${data.fluency_score}%`;
+        document.getElementById('fluency-ring').style.setProperty('--score-val', data.fluency_score);
+
+        document.getElementById('wpm-val').innerText = data.wpm;
+        document.getElementById('xp-val').innerText = `+${data.xp_earned}`;
+
+        // Show Feedback Card
+        const fbCard = document.getElementById('feedback-card');
+        document.getElementById('gemini-feedback-text').innerText = data.feedback;
+        fbCard.classList.remove('d-none');
+
+        // Highlight Final Alignment
+        if (data.alignment) {
+          data.alignment.forEach((item, idx) => {
+            const el = document.getElementById(`word-span-${idx}`);
+            if (el) {
+              el.className = `target-word-span ${item.status}`;
+            }
+          });
+        }
+        status.innerText = "Great job! Attempt saved. Tap mic to read again!";
+      } else {
+        status.innerText = "Error analyzing attempt: " + (data.error || "Please try again.");
+      }
+    } catch (err) {
+      status.innerText = "Connection error. Please tap mic to retry.";
     }
   }
 
   function speakPassageOriginal() {
-    window.speechSynthesis.cancel();
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      isAiSpeaking = false;
+      document.getElementById('recording-status-text').innerText = "AI Teacher stopped. Tap mic to read!";
+      return;
+    }
+
+    const words = targetText.split(/\s+/);
     const utt = new SpeechSynthesisUtterance(targetText);
-    utt.rate = 0.9;
+    utt.rate = 0.85;
+    utt.pitch = 1.0;
+    isAiSpeaking = true;
+
+    utt.onboundary = (event) => {
+      if (event.name === 'word') {
+        const charIdx = event.charIndex;
+        let count = 0;
+        for (let i = 0; i < words.length; i++) {
+          count += words[i].length + 1;
+          if (count > charIdx) {
+            const el = document.getElementById(`word-span-${i}`);
+            if (el) el.className = 'target-word-span correct';
+            break;
+          }
+        }
+      }
+    };
+
+    utt.onend = () => {
+      isAiSpeaking = false;
+      document.getElementById('recording-status-text').innerText = "AI Teacher finished reading! Your turn to read!";
+    };
+
+    document.getElementById('recording-status-text').innerText = "AI Teacher is reading aloud... (Click Listen button to stop)";
     window.speechSynthesis.speak(utt);
   }
 
