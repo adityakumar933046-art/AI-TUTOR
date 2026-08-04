@@ -17,6 +17,9 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-eduverse-auth-
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', '*').split(',') if host.strip()]
+render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if render_hostname and render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_hostname)
 
 # Application definition
 INSTALLED_APPS = [
@@ -63,11 +66,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'eduverse_project.wsgi.application'
 
-# Database Configuration (PostgreSQL with SQLite fallback)
+# Database Configuration (PostgreSQL with dj-database-url & SQLite fallback)
+try:
+    import dj_database_url
+except ImportError:
+    dj_database_url = None
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
 DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
 DB_NAME = os.environ.get('DB_NAME', str(BASE_DIR / 'db.sqlite3'))
 
-if 'postgresql' in DB_ENGINE and os.environ.get('DB_USER'):
+if DATABASE_URL and dj_database_url:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+elif 'postgresql' in DB_ENGINE and os.environ.get('DB_USER'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
