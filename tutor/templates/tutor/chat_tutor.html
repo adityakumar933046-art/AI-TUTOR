@@ -167,7 +167,7 @@
           </div>
 
           <div class="d-flex align-items-center gap-2">
-            <a href="{% url 'voice_tutor_session' session_id=active_session.id %}" class="btn btn-danger btn-sm rounded-pill shadow-sm">
+            <a href="{% if active_session %}{% url 'voice_tutor_session' session_id=active_session.id %}{% else %}{% url 'voice_tutor' %}{% endif %}" class="btn btn-danger btn-sm rounded-pill shadow-sm">
               <i class="bi bi-mic-fill me-1"></i> Switch to Voice Mode
             </a>
             <a href="{% url 'chat_create' %}?subject={{ active_session.subject }}" class="btn btn-outline-primary btn-sm rounded-pill">

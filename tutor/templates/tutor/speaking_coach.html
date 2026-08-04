@@ -153,13 +153,13 @@
         <p class="text-muted fs-8 mb-3">Seamlessly switch to other EduVerse tools!</p>
         
         <div class="d-grid gap-2">
-          <a href="{% url 'voice_tutor_session' session_id=active_session.chat_session.id %}" class="btn btn-danger py-2 fs-7 shadow-sm rounded-pill">
+          <a href="{% if active_session and active_session.chat_session %}{% url 'voice_tutor_session' session_id=active_session.chat_session.id %}{% else %}{% url 'voice_tutor' %}{% endif %}" class="btn btn-danger py-2 fs-7 shadow-sm rounded-pill">
             <i class="bi bi-mic me-1"></i> Open Voice Tutor
           </a>
           <a href="{% url 'reading_coach' %}" class="btn btn-success text-white py-2 fs-7 shadow-sm rounded-pill fw-semibold">
             <i class="bi bi-book-half me-1"></i> Practice Reading
           </a>
-          <a href="{% url 'chat_tutor_session' session_id=active_session.chat_session.id %}" class="btn btn-edu-primary py-2 fs-7 shadow-sm">
+          <a href="{% if active_session and active_session.chat_session %}{% url 'chat_tutor_session' session_id=active_session.chat_session.id %}{% else %}{% url 'chat_tutor' %}{% endif %}" class="btn btn-edu-primary py-2 fs-7 shadow-sm">
             <i class="bi bi-chat-left-text me-1"></i> Ask in Chat
           </a>
         </div>

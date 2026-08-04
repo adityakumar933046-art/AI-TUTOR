@@ -186,10 +186,10 @@
           <a href="{% url 'whiteboard' %}" class="btn btn-warning text-dark py-2 fs-7 shadow-sm rounded-pill fw-semibold">
             <i class="bi bi-easel me-1"></i> Explain on Whiteboard
           </a>
-          <a href="{% url 'voice_tutor_session' session_id=active_homework.chat_session.id %}" class="btn btn-danger py-2 fs-7 shadow-sm rounded-pill">
+          <a href="{% if active_homework and active_homework.chat_session %}{% url 'voice_tutor_session' session_id=active_homework.chat_session.id %}{% else %}{% url 'voice_tutor' %}{% endif %}" class="btn btn-danger py-2 fs-7 shadow-sm rounded-pill">
             <i class="bi bi-mic me-1"></i> Talk via Voice Tutor
           </a>
-          <a href="{% url 'chat_tutor_session' session_id=active_homework.chat_session.id %}" class="btn btn-edu-primary py-2 fs-7 shadow-sm">
+          <a href="{% if active_homework and active_homework.chat_session %}{% url 'chat_tutor_session' session_id=active_homework.chat_session.id %}{% else %}{% url 'chat_tutor' %}{% endif %}" class="btn btn-edu-primary py-2 fs-7 shadow-sm">
             <i class="bi bi-chat-left-text me-1"></i> Discuss in Chat
           </a>
           <a href="{% url 'visual_learning' %}" class="btn btn-info text-white py-2 fs-7 shadow-sm rounded-pill fw-semibold">

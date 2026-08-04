@@ -111,7 +111,7 @@
   <!-- Header Bar -->
   <div class="d-flex align-items-center justify-content-between mb-4">
     <div class="d-flex align-items-center gap-3">
-      <a href="{% url 'chat_tutor_session' session_id=active_session.id %}" class="btn btn-outline-secondary rounded-circle p-2" title="Switch to Text Chat">
+      <a href="{% if active_session %}{% url 'chat_tutor_session' session_id=active_session.id %}{% else %}{% url 'chat_tutor' %}{% endif %}" class="btn btn-outline-secondary rounded-circle p-2" title="Switch to Text Chat">
         <i class="bi bi-chat-left-text fs-5"></i>
       </a>
       <div>
