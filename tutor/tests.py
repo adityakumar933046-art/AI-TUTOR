@@ -853,14 +853,16 @@ class Phase12AdminAndSystemInfrastructureTests(TestCase):
             role='Admin',
             is_staff=True,
             is_superuser=True,
-            email_verified=True
+            email_verified=True,
+            is_profile_complete=True
         )
         self.student = User.objects.create_user(
             username='target_student',
             email='target@eduverse.ai',
             password='Password123!',
             role='Student',
-            email_verified=True
+            email_verified=True,
+            is_profile_complete=True
         )
 
     def test_system_monitor_service(self):
@@ -909,7 +911,8 @@ class Phase13AIConfigAndPromptStudioTests(TestCase):
             role='Admin',
             is_staff=True,
             is_superuser=True,
-            email_verified=True
+            email_verified=True,
+            is_profile_complete=True
         )
         PromptService.seed_default_prompts()
 
@@ -964,7 +967,8 @@ class Phase14BackupAndRestoreSystemTests(TestCase):
             role='Admin',
             is_staff=True,
             is_superuser=True,
-            email_verified=True
+            email_verified=True,
+            is_profile_complete=True
         )
 
     def test_backup_service_creation_and_checksum(self):
@@ -1008,7 +1012,8 @@ class Phase15AIAnalyticsAndPerformanceIntelligenceTests(TestCase):
             role='Admin',
             is_staff=True,
             is_superuser=True,
-            email_verified=True
+            email_verified=True,
+            is_profile_complete=True
         )
 
     def test_analytics_logging_service(self):
@@ -1047,7 +1052,8 @@ class Phase16EnterpriseSecurityAndDiagnosticsTests(TestCase):
             role='Admin',
             is_staff=True,
             is_superuser=True,
-            email_verified=True
+            email_verified=True,
+            is_profile_complete=True
         )
 
     def test_system_diagnostics_service(self):

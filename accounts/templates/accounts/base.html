@@ -40,9 +40,19 @@
           </li>
           {% if user.is_authenticated %}
             <li class="nav-item">
-              <a class="nav-link fw-medium text-primary" href="{% url 'dashboard_'|add:user.role.lower %}">
-                <i class="bi bi-speedometer2 me-1"></i> Dashboard
-              </a>
+              {% if user.role == 'Parent' %}
+                <a class="nav-link fw-medium text-primary" href="{% url 'parent_dashboard' %}">
+                  <i class="bi bi-speedometer2 me-1"></i> Parent Dashboard
+                </a>
+              {% elif user.role == 'Admin' %}
+                <a class="nav-link fw-medium text-primary" href="{% url 'admin_hub' %}">
+                  <i class="bi bi-speedometer2 me-1"></i> Admin Hub
+                </a>
+              {% else %}
+                <a class="nav-link fw-medium text-primary" href="{% url 'dashboard_student' %}">
+                  <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                </a>
+              {% endif %}
             </li>
           {% endif %}
         </ul>
