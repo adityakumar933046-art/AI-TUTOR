@@ -6,45 +6,47 @@
 <div class="container py-4">
   <!-- Top Welcome Banner -->
   <div class="glass-card p-4 mb-4 border-0 shadow-sm position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);">
-    <div class="row align-items-center">
-      <div class="col-md-7">
+    <div class="row align-items-center gy-3">
+      <div class="col-lg-4">
         <span class="badge bg-warning text-dark rounded-pill px-3 py-1 mb-2 fw-bold shadow-sm">
           <i class="bi bi-stars me-1"></i> AI Tutor Active
         </span>
         <h2 class="fw-bold mb-1" style="color: var(--text-color);">Welcome back, {{ user.first_name|default:user.username }}! 🚀</h2>
         <p class="text-muted mb-0">Grade: <span class="fw-semibold text-primary">{{ profile.grade }}</span> • Age: <span class="fw-semibold">{{ profile.age }}</span></p>
       </div>
-      <div class="col-md-5 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end">
-        <a href="{% url 'learning_brain' %}" class="btn text-white shadow px-3 fw-semibold rounded-pill" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
-          <i class="bi bi-cpu-fill me-1"></i> Learning Brain
-        </a>
-        <a href="{% url 'game_center' %}" class="btn text-white shadow px-3 fw-semibold rounded-pill" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);">
-          <i class="bi bi-controller me-1"></i> Game Center
-        </a>
-        <a href="{% url 'speaking_coach' %}" class="btn btn-danger text-white shadow px-3 fw-semibold rounded-pill">
-          <i class="bi bi-chat-quote-fill me-1"></i> Speaking Coach
-        </a>
-        <a href="{% url 'reading_coach' %}" class="btn btn-success text-white shadow px-3 fw-semibold rounded-pill">
-          <i class="bi bi-book-half me-1"></i> Reading Coach
-        </a>
-        <a href="{% url 'homework_scanner' %}" class="btn btn-secondary text-white shadow px-3 fw-semibold rounded-pill">
-          <i class="bi bi-camera-fill me-1"></i> HW Scanner
-        </a>
-        <a href="{% url 'visual_learning' %}" class="btn btn-info text-white shadow px-3 fw-semibold rounded-pill">
-          <i class="bi bi-diagram-3-fill me-1"></i> Visual Engine
-        </a>
-        <a href="{% url 'whiteboard' %}" class="btn btn-warning text-dark shadow px-3 fw-semibold rounded-pill">
-          <i class="bi bi-easel-fill me-1"></i> Whiteboard
-        </a>
-        <a href="{% url 'voice_tutor' %}" class="btn btn-danger shadow px-3 fw-semibold rounded-pill">
-          <i class="bi bi-mic-fill me-1"></i> Voice Tutor
-        </a>
-        <a href="{% url 'chat_tutor' %}" class="btn btn-edu-primary shadow px-3">
-          <i class="bi bi-robot me-1"></i> Chat AI
-        </a>
-        <a href="{% url 'profile' %}" class="btn btn-outline-primary rounded-circle p-2" title="Edit Profile">
-          <i class="bi bi-person-gear fs-5"></i>
-        </a>
+      <div class="col-lg-8 text-lg-end">
+        <div class="d-flex flex-wrap gap-2 justify-content-start justify-content-lg-end">
+          <a href="{% url 'learning_brain' %}" class="btn text-white shadow-sm px-3 fw-semibold rounded-pill" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
+            <i class="bi bi-cpu-fill me-1"></i> Learning Brain
+          </a>
+          <a href="{% url 'game_center' %}" class="btn text-white shadow-sm px-3 fw-semibold rounded-pill" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);">
+            <i class="bi bi-controller me-1"></i> Game Center
+          </a>
+          <a href="{% url 'speaking_coach' %}" class="btn btn-danger text-white shadow-sm px-3 fw-semibold rounded-pill">
+            <i class="bi bi-chat-quote-fill me-1"></i> Speaking Coach
+          </a>
+          <a href="{% url 'reading_coach' %}" class="btn btn-success text-white shadow-sm px-3 fw-semibold rounded-pill">
+            <i class="bi bi-book-half me-1"></i> Reading Coach
+          </a>
+          <a href="{% url 'homework_scanner' %}" class="btn btn-secondary text-white shadow-sm px-3 fw-semibold rounded-pill">
+            <i class="bi bi-camera-fill me-1"></i> HW Scanner
+          </a>
+          <a href="{% url 'visual_learning' %}" class="btn btn-info text-white shadow-sm px-3 fw-semibold rounded-pill">
+            <i class="bi bi-diagram-3-fill me-1"></i> Visual Engine
+          </a>
+          <a href="{% url 'whiteboard' %}" class="btn btn-warning text-dark shadow-sm px-3 fw-semibold rounded-pill">
+            <i class="bi bi-easel-fill me-1"></i> Whiteboard
+          </a>
+          <a href="{% url 'voice_tutor' %}" class="btn btn-danger shadow-sm px-3 fw-semibold rounded-pill">
+            <i class="bi bi-mic-fill me-1"></i> Voice Tutor
+          </a>
+          <a href="{% url 'chat_tutor' %}" class="btn btn-edu-primary shadow-sm px-3">
+            <i class="bi bi-robot me-1"></i> Chat AI
+          </a>
+          <a href="{% url 'profile' %}" class="btn btn-outline-primary rounded-circle p-2" title="Edit Profile">
+            <i class="bi bi-person-gear fs-5"></i>
+          </a>
+        </div>
       </div>
     </div>
   </div>
