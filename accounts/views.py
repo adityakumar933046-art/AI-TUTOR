@@ -82,7 +82,8 @@ def register_view(request):
                     fail_silently=True
                 )
             except Exception as e:
-                print(f"[SMTP ERROR] Verification email send failed: {e}")
+                import logging
+                logging.getLogger(__name__).error(f"[SMTP ERROR] Verification email send failed: {e}")
 
             AuditLogMiddleware.log_action(request, user, 'REGISTER')
             messages.success(request, f"Account created for {user.username}! A verification email has been sent to {user.email}.")
