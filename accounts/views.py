@@ -390,18 +390,23 @@ def profile_view(request):
 # ==========================================
 # 8. ROLE-BASED DASHBOARDS
 # ==========================================
+from tutor.models import ChatSession
+
 @login_required
 @role_required(['Student'])
 def student_dashboard(request):
     profile, _ = StudentProfile.objects.get_or_create(user=request.user)
-    return render(request, 'accounts/dashboards/student.html', {'profile': profile})
+    recent_chats = ChatSession.objects.filter(student=request.user).order_by('-updated_at')[:5]
+    return render(request, 'accounts/dashboards/student.html', {
+        'profile': profile,
+        'recent_chats': recent_chats,
+    })
 
 
 @login_required
 @role_required(['Parent'])
 def parent_dashboard(request):
-    profile, _ = ParentProfile.objects.get_or_create(user=request.user)
-    return render(request, 'accounts/dashboards/parent.html', {'profile': profile})
+    return redirect('parent_dashboard')
 
 
 
@@ -409,9 +414,4 @@ def parent_dashboard(request):
 @login_required
 @role_required(['Admin'])
 def admin_dashboard(request):
-    recent_logs = AuditLog.objects.select_related('user').order_by('-timestamp')[:20]
-    total_users = User.objects.count()
-    return render(request, 'accounts/dashboards/admin.html', {
-        'recent_logs': recent_logs,
-        'total_users': total_users
-    })
+    return redirect('admin_hub')
