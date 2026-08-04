@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 class AnalyticsLoggingService:
     @staticmethod
-    def log_ai_request(module_name, model_name='gemini-1.5-flash', tokens_used=0, response_time_ms=0, status_code=200, is_success=True, user=None):
+    def log_ai_request(module_name, model_name='gemini-2.0-flash', tokens_used=0, response_time_ms=0, status_code=200, is_success=True, user=None):
         try:
             AIUsageLog.objects.create(
                 module_name=module_name,

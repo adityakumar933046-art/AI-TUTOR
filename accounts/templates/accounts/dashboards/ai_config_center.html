@@ -57,9 +57,10 @@
           <div class="mb-3">
             <label class="form-label fs-8 fw-semibold">Model Selection</label>
             <select class="form-select rounded-pill glass-input fs-8" name="model_name">
-              <option value="gemini-1.5-flash" {% if config.model_name == 'gemini-1.5-flash' %}selected{% endif %}>gemini-1.5-flash (Fast & Recommended)</option>
-              <option value="gemini-1.5-pro" {% if config.model_name == 'gemini-1.5-pro' %}selected{% endif %}>gemini-1.5-pro (High Reasoning)</option>
-              <option value="gemini-pro" {% if config.model_name == 'gemini-pro' %}selected{% endif %}>gemini-pro (Legacy)</option>
+              <option value="gemini-2.0-flash" {% if config.model_name == 'gemini-2.0-flash' or not config.model_name %}selected{% endif %}>gemini-2.0-flash (Fast & Recommended)</option>
+              <option value="gemini-2.5-flash" {% if config.model_name == 'gemini-2.5-flash' %}selected{% endif %}>gemini-2.5-flash (Next-Gen Performance)</option>
+              <option value="gemini-2.0-flash-lite" {% if config.model_name == 'gemini-2.0-flash-lite' %}selected{% endif %}>gemini-2.0-flash-lite (Ultra Fast)</option>
+              <option value="gemini-flash-latest" {% if config.model_name == 'gemini-flash-latest' %}selected{% endif %}>gemini-flash-latest (Auto Stable)</option>
             </select>
           </div>
 

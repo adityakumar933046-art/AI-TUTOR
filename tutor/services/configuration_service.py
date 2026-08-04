@@ -11,7 +11,7 @@ class ConfigurationService:
             config, _ = AIConfiguration.objects.get_or_create(
                 provider='Gemini',
                 defaults={
-                    'model_name': 'gemini-1.5-flash',
+                    'model_name': 'gemini-2.0-flash',
                     'temperature': 0.7,
                     'top_p': 0.95,
                     'top_k': 40,

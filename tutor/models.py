@@ -1317,7 +1317,7 @@ class StudyPattern(models.Model):
 # ==========================================
 class AIConfiguration(models.Model):
     provider = models.CharField(max_length=50, default='Gemini')
-    model_name = models.CharField(max_length=100, default='gemini-1.5-flash')
+    model_name = models.CharField(max_length=100, default='gemini-2.0-flash')
     temperature = models.FloatField(default=0.7)
     top_p = models.FloatField(default=0.95)
     top_k = models.IntegerField(default=40)
@@ -1508,7 +1508,7 @@ class RestoreHistory(models.Model):
 # ==========================================
 class AIUsageLog(models.Model):
     module_name = models.CharField(max_length=100)
-    model_name = models.CharField(max_length=100, default='gemini-1.5-flash')
+    model_name = models.CharField(max_length=100, default='gemini-2.0-flash')
     tokens_used = models.IntegerField(default=0)
     response_time_ms = models.IntegerField(default=0)
     status_code = models.IntegerField(default=200)
