@@ -10,6 +10,7 @@ urlpatterns = [
     path('chat/<int:session_id>/', views.chat_tutor_view, name='chat_tutor_session'),
     path('chat/new/', views.chat_create_session, name='chat_create'),
     path('chat/<int:session_id>/send/', views.chat_send_message_api, name='chat_send_api'),
+    path('chat/<int:session_id>/stream/', views.chat_stream_message_api, name='chat_stream_api'),
     path('chat/<int:session_id>/rename/', views.chat_rename_session, name='chat_rename_api'),
     path('chat/<int:session_id>/delete/', views.chat_delete_session, name='chat_delete_api'),
     path('chat/<int:session_id>/pin/', views.chat_pin_session, name='chat_pin_api'),

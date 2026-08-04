@@ -321,29 +321,87 @@
 
     try {
       const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-      const response = await fetch(`/tutor/chat/${sessionId}/send/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({ message: msgText })
-      });
+      const eventSource = new EventSource(`/tutor/chat/${sessionId}/stream/?message=${encodeURIComponent(msgText)}`);
+      let streamDiv = null;
+      let streamContent = '';
 
-      const data = await response.json();
-      typingIndicator.classList.add('d-none');
-
-      if (data.success) {
-        appendAiBubble(data.ai_response.content, data.ai_response.timestamp);
-        if (data.session_title) {
-          document.getElementById('current-session-title').innerText = data.session_title;
+      eventSource.onmessage = function(event) {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.chunk) {
+            if (typingIndicator) typingIndicator.classList.add('d-none');
+            if (!streamDiv) {
+              streamDiv = document.createElement('div');
+              streamDiv.className = 'd-flex mb-3 justify-content-start';
+              streamDiv.innerHTML = `
+                <div class="sparky-avatar me-2 flex-shrink-0" style="width:36px; height:36px; font-size:1.1rem;">
+                  <i class="bi bi-robot"></i>
+                </div>
+                <div class="p-3 message-bubble-ai">
+                  <div class="chat-text-content"></div>
+                  <div class="d-flex align-items-center justify-content-between mt-2 pt-1 opacity-75 fs-9">
+                    <span>Just now</span>
+                    <button class="btn btn-link text-muted p-0 ms-2 text-decoration-none fs-8" onclick="copyMessageText(this)" title="Copy Response">
+                      <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                  </div>
+                </div>
+              `;
+              messagesContainer.insertBefore(streamDiv, typingIndicator);
+            }
+            streamContent += payload.chunk;
+            streamDiv.querySelector('.chat-text-content').innerHTML = md.render(streamContent);
+            renderMathAndHighlight();
+            scrollToBottom();
+          }
+          if (payload.done) {
+            eventSource.close();
+            if (payload.session_title) {
+              const titleEl = document.getElementById('current-session-title');
+              if (titleEl) titleEl.innerText = payload.session_title;
+            }
+          }
+        } catch (e) {
+          console.error("Stream parse error:", e);
         }
-      } else {
-        appendAiBubble("Oops! " + (data.error || "Something went wrong."), "Now");
-      }
+      };
+
+      eventSource.onerror = async function() {
+        eventSource.close();
+        if (!streamDiv) {
+          // Fallback to standard endpoint
+          try {
+            const response = await fetch(`/tutor/chat/${sessionId}/send/`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+              },
+              body: JSON.stringify({ message: msgText })
+            });
+
+            const data = await response.json();
+            typingIndicator.classList.add('d-none');
+
+            if (data.success) {
+              appendAiBubble(data.ai_response.content, data.ai_response.timestamp);
+              if (data.session_title) {
+                const titleEl = document.getElementById('current-session-title');
+                if (titleEl) titleEl.innerText = data.session_title;
+              }
+            } else {
+              appendAiBubble("Oops! " + (data.error || "Something went wrong."), "Now");
+            }
+          } catch (fallbackErr) {
+            typingIndicator.classList.add('d-none');
+            appendAiBubble("Network error connecting to AI Tutor.", "Now");
+          }
+          scrollToBottom();
+        }
+      };
     } catch (err) {
       typingIndicator.classList.add('d-none');
-      appendAiBubble("Network error connecting to AI Tutor. Please check your internet connection.", "Now");
+      appendAiBubble("Network error connecting to AI Tutor.", "Now");
     }
 
     scrollToBottom();

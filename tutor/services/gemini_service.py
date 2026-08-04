@@ -79,3 +79,46 @@ class GeminiTutorService:
             "error": last_error,
             "response": f"I couldn't reach Gemini right now, but I'm ready to continue as soon as network connects! (Error: {last_error})"
         }
+
+    def generate_tutor_response_stream(self, user_message, chat_history=None):
+        """
+        Yields chunked text responses from Gemini for real-time streaming to the client.
+        """
+        if not self.api_key:
+            yield "GEMINI_API_KEY is not configured in .env!"
+            return
+
+        import google.generativeai as genai
+        genai.configure(api_key=self.api_key)
+        
+        kwargs = ModelRouter.get_dynamic_model_kwargs()
+        primary_model = kwargs.get('model_name', 'gemini-1.5-flash-latest')
+        candidate_models = [primary_model, 'gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-exp']
+
+        formatted_history = []
+        if chat_history:
+            recent_history = list(chat_history)[-16:]
+            for msg in recent_history:
+                role = 'user' if msg.role == 'user' else 'model'
+                formatted_history.append({
+                    "role": role,
+                    "parts": [msg.content]
+                })
+
+        for m_name in candidate_models:
+            try:
+                model = genai.GenerativeModel(
+                    model_name=m_name,
+                    system_instruction=self.system_instruction
+                )
+                chat = model.start_chat(history=formatted_history)
+                response_stream = chat.send_message(user_message, stream=True)
+                for chunk in response_stream:
+                    if chunk and chunk.text:
+                        yield chunk.text
+                return
+            except Exception as e:
+                logger.warning(f"[GEMINI STREAM RETRY]: Model '{m_name}' failed: {e}. Trying fallback...")
+                continue
+
+        yield "I am having trouble connecting to Gemini stream right now, but I will retry shortly!"

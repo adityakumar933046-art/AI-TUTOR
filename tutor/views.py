@@ -218,6 +218,52 @@ def chat_send_message_api(request, session_id):
     })
 
 
+from django.http import StreamingHttpResponse
+
+@login_required
+@role_required(['Student'])
+def chat_stream_message_api(request, session_id):
+    session = get_object_or_404(ChatSession, id=session_id, student=request.user)
+    user_text = request.GET.get('message', '').strip()
+    if not user_text:
+        return JsonResponse({'error': 'Message required'}, status=400)
+
+    user_msg = ChatMessage.objects.create(
+        session=session,
+        role='user',
+        content=user_text
+    )
+
+    if session.messages.filter(role='user').count() == 1:
+        words = user_text.split()[:4]
+        session.title = " ".join(words).capitalize() if words else session.title
+        session.save()
+
+    history = session.messages.exclude(id=user_msg.id)
+    service = GeminiTutorService(subject=session.subject)
+
+    def event_stream():
+        collected = []
+        for chunk in service.generate_tutor_response_stream(user_text, chat_history=history):
+            collected.append(chunk)
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        
+        full_text = "".join(collected).strip() or "I'm here to help!"
+        ai_msg = ChatMessage.objects.create(
+            session=session,
+            role='model',
+            content=full_text
+        )
+        session.save()
+        LearningMemoryService.record_activity_impact(request.user, subject=session.subject, topic=session.title, score_pct=85.0)
+        yield f"data: {json.dumps({'done': True, 'msg_id': ai_msg.id, 'session_title': session.title})}\n\n"
+
+    res = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    res['Cache-Control'] = 'no-cache'
+    res['X-Accel-Buffering'] = 'no'
+    return res
+
+
 @login_required
 @role_required(['Student'])
 @require_POST
