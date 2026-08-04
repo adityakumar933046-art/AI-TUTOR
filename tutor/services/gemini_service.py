@@ -39,9 +39,9 @@ class GeminiTutorService:
         genai.configure(api_key=self.api_key)
         
         kwargs = ModelRouter.get_dynamic_model_kwargs()
-        primary_model = kwargs.get('model_name', 'gemini-1.5-flash-latest')
-        candidate_models = [primary_model, 'gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-exp']
 
+        primary_model = kwargs.get('model_name', os.getenv('GEMINI_MODEL', 'gemini-2.0-flash'))
+        candidate_models = [primary_model, 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
         formatted_history = []
         if chat_history:
             recent_history = list(chat_history)[-16:]
@@ -92,9 +92,9 @@ class GeminiTutorService:
         genai.configure(api_key=self.api_key)
         
         kwargs = ModelRouter.get_dynamic_model_kwargs()
-        primary_model = kwargs.get('model_name', 'gemini-1.5-flash-latest')
-        candidate_models = [primary_model, 'gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-exp']
 
+        primary_model = kwargs.get('model_name', os.getenv('GEMINI_MODEL', 'gemini-2.0-flash'))
+        candidate_models = [primary_model, 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
         formatted_history = []
         if chat_history:
             recent_history = list(chat_history)[-16:]
