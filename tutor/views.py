@@ -680,6 +680,10 @@ def reading_coach_view(request, passage_id=None, session_id=None):
     if session_id:
         active_session = get_object_or_404(ReadingSession, id=session_id, student=request.user)
         active_passage = active_session.passage
+        mode_param = request.GET.get('mode')
+        if mode_param and mode_param in dict(ReadingSession.MODE_CHOICES):
+            active_session.mode = mode_param
+            active_session.save()
     elif passage_id:
         active_passage = get_object_or_404(ReadingPassage, id=passage_id)
         active_session = ReadingPassageService.start_reading_session(request.user, active_passage.id)
