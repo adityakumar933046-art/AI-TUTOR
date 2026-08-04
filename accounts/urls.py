@@ -11,7 +11,8 @@ urlpatterns = [
     path('resend-verification/', views.resend_verification_view, name='resend_verification'),
     path('forgot-password/', views.forgot_password_view, name='forgot_password'),
     path('reset-password/<str:token>/', views.reset_password_view, name='reset_password'),
-    path('profile/complete/', views.complete_profile_view, name='complete_profile'),
+    path('complete-profile/', views.complete_profile_view, name='complete_profile'),
+    path('profile/complete/', views.complete_profile_view, name='complete_profile_legacy'),
     path('profile/', views.profile_view, name='profile'),
     
     # Role-Based Dashboards

@@ -173,38 +173,58 @@ def logout_view(request):
 def google_oauth_view(request):
     """
     Google OAuth authentication flow.
-    Automatically signs in or registers a Google account.
+    Automatically signs in or registers a Google account with full verification and profile completion checks.
     """
-    email = request.GET.get('email', 'google_user@eduverse.ai')
-    name = request.GET.get('name', 'Google Learner')
-    username = email.split('@')[0]
+    email = request.GET.get('email', 'google_user@eduverse.ai').strip()
+    name = request.GET.get('name', 'Google Learner').strip()
+    base_username = email.split('@')[0]
 
-    user, created = User.objects.get_or_create(
-        email=email,
-        defaults={
-            'username': username,
-            'first_name': name.split(' ')[0] if ' ' in name else name,
-            'last_name': name.split(' ')[1] if ' ' in name else '',
-            'role': 'Student',
-            'email_verified': True,
-            'is_profile_complete': False
-        }
-    )
+    try:
+        user = User.objects.filter(email__iexact=email).first()
+        created = False
+        if not user:
+            username = base_username
+            count = 1
+            while User.objects.filter(username__iexact=username).exists():
+                username = f"{base_username}{count}"
+                count += 1
 
-    if created:
-        StudentProfile.objects.create(user=user)
-        user.set_unusable_password()
-        user.save()
+            name_parts = name.split(' ', 1)
+            user = User.objects.create(
+                email=email,
+                username=username,
+                first_name=name_parts[0],
+                last_name=name_parts[1] if len(name_parts) > 1 else '',
+                role='Student',
+                email_verified=True,
+                is_profile_complete=False
+            )
+            user.set_unusable_password()
+            user.save()
+            StudentProfile.objects.create(user=user)
+            created = True
+        else:
+            if not user.email_verified:
+                user.email_verified = True
+                user.save()
 
-    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-    AuditLogMiddleware.log_action(request, user, 'GOOGLE_OAUTH_LOGIN')
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+        AuditLogMiddleware.log_action(request, user, 'GOOGLE_OAUTH_LOGIN')
 
-    if created or not user.is_profile_complete:
-        messages.success(request, f"Welcome to EduVerse AI Kids, {user.first_name}! Please complete your profile.")
-        return redirect('complete_profile')
+        if not user.is_profile_complete:
+            messages.success(request, f"Welcome to EduVerse AI Kids, {user.first_name or user.username}! Please complete your profile to continue.")
+            return redirect('complete_profile')
 
-    messages.success(request, f"Logged in via Google as {user.email}!")
-    return redirect(f"dashboard_{user.role.lower()}")
+        messages.success(request, f"Logged in via Google as {user.email}!")
+        if user.role == 'Parent':
+            return redirect('parent_dashboard')
+        elif user.role == 'Admin':
+            return redirect('admin_hub')
+        return redirect('dashboard_student')
+
+    except Exception as e:
+        messages.error(request, f"Google login error: {str(e)}")
+        return redirect('login')
 
 
 # ==========================================
@@ -342,15 +362,27 @@ def complete_profile_view(request):
                 if form.cleaned_data.get('parent_name'):
                     student_profile.parent_name = form.cleaned_data['parent_name']
                 student_profile.save()
+            elif user.role == 'Parent':
+                parent_profile, _ = ParentProfile.objects.get_or_create(user=user)
+                if form.cleaned_data.get('phone_number'):
+                    parent_profile.phone_number = form.cleaned_data['phone_number']
+                parent_profile.save()
 
             AuditLogMiddleware.log_action(request, user, 'PROFILE_COMPLETED')
             messages.success(request, "Profile completed successfully! Welcome to your dashboard.")
-            return redirect(f"dashboard_{user.role.lower()}")
+            if user.role == 'Parent':
+                return redirect('parent_dashboard')
+            elif user.role == 'Admin':
+                return redirect('admin_hub')
+            return redirect('dashboard_student')
     else:
         initial_data = {}
         if request.user.role == 'Student' and hasattr(request.user, 'student_profile'):
             sp = request.user.student_profile
             initial_data = {'age': sp.age, 'grade': sp.grade, 'parent_name': sp.parent_name}
+        elif request.user.role == 'Parent' and hasattr(request.user, 'parent_profile'):
+            pp = request.user.parent_profile
+            initial_data = {'phone_number': pp.phone_number}
         form = CompleteProfileForm(instance=request.user, initial=initial_data)
 
     return render(request, 'accounts/complete_profile.html', {'form': form})

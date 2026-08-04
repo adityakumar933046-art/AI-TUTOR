@@ -32,6 +32,32 @@ class InactivityTimeoutMiddleware:
         return response
 
 
+class ProfileCompletionMiddleware:
+    """
+    Middleware enforcing that logged-in users with incomplete profiles
+    are redirected to /accounts/complete-profile/ before accessing dashboards.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated and not request.user.is_profile_complete:
+            allowed_paths = [
+                '/accounts/complete-profile/',
+                '/accounts/profile/complete/',
+                '/accounts/logout/',
+                '/admin/',
+                '/static/',
+                '/media/'
+            ]
+            path = request.path_info
+            if not any(path.startswith(p) for p in allowed_paths):
+                messages.info(request, "Please complete your profile details to access your dashboard.")
+                return redirect('complete_profile')
+
+        return self.get_response(request)
+
+
 class AuditLogMiddleware:
     """
     Middleware that provides utility methods to capture client IP address and user agent.

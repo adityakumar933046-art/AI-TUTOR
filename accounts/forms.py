@@ -244,6 +244,16 @@ class CompleteProfileForm(forms.ModelForm):
         })
     )
 
+    # Parent specific profile fields
+    phone_number = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control rounded-pill glass-input',
+            'placeholder': '+1 (555) 000-0000',
+            'id': 'profile-phone'
+        })
+    )
+
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'username', 'profile_picture', 'bio', 'date_of_birth', 'gender', 'language', 'country', 'state', 'city']

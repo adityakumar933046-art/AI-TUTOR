@@ -107,14 +107,37 @@ class Phase1AuthSystemTests(TestCase):
         self.assertTrue(User.objects.filter(username='new_learner').exists())
 
     def test_google_oauth_flow(self):
+        # First Google Login -> is_profile_complete=False -> Redirects to complete_profile
         response = self.client.get(reverse('google_oauth'), {
             'email': 'google_test@eduverse.ai',
             'name': 'Google Kid'
         })
         self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('complete_profile'))
         user = User.objects.get(email='google_test@eduverse.ai')
         self.assertTrue(user.email_verified)
-        self.assertEqual(user.role, 'Student')
+        self.assertFalse(user.is_profile_complete)
+
+        # Complete Profile submission
+        resp_complete = self.client.post(reverse('complete_profile'), {
+            'first_name': 'Google',
+            'last_name': 'Kid',
+            'username': user.username,
+            'age': 9,
+            'grade': 'Grade 4'
+        })
+        self.assertEqual(resp_complete.status_code, 302)
+        user.refresh_from_db()
+        self.assertTrue(user.is_profile_complete)
+
+        # Subsequent Google Login -> is_profile_complete=True -> Redirects to role dashboard
+        self.client.logout()
+        resp_returning = self.client.get(reverse('google_oauth'), {
+            'email': 'google_test@eduverse.ai',
+            'name': 'Google Kid'
+        })
+        self.assertEqual(resp_returning.status_code, 302)
+        self.assertRedirects(resp_returning, reverse('dashboard_student'))
 
     def test_email_verification_token(self):
         user = User.objects.create_user(
