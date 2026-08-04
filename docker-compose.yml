@@ -3,7 +3,7 @@ version: '3.8'
 services:
   web:
     build: .
-    command: gunicorn eduverse_project.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    command: gunicorn eduverse_project.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 180
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
